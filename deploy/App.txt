@@ -3,11 +3,11 @@
 <head>
     <title>Project Status</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Sun Oct 04 2015 15:33:08 GMT-0700 (PDT) -->
+    <!--  Build Date: Sun Oct 04 2015 15:48:43 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Sun Oct 04 2015 15:33:08 GMT-0700 (PDT)";
-        var CHECKSUM = 4641561565;
+        var APP_BUILD_DATE = "Sun Oct 04 2015 15:48:43 GMT-0700 (PDT)";
+        var CHECKSUM = 5702359825;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -189,15 +189,13 @@ Ext.define("TSProjectStatus", {
         var me = this;
         this.setLoading("Loading...");
 
-        Deft.Chain.sequence([
+        Deft.Chain.pipeline([
             this._getMostRecentIterationForEachProject,
-            this._getStoriesFromSixMonths
+            this._getStoriesFromIterations
         ],this).then({
             scope: this,
             success: function(results) {
-                var iterations_by_project_oid = results[0];
-                var stories = results[1];
-                this.logger.log('Found:',iterations_by_project_oid,stories);
+                var stories = Ext.Array.flatten(results);
                 
                 var stories_by_epmsid = this._organizeStoriesByEPMS(stories);
                 this.logger.log('stories_by_epmsid', stories_by_epmsid);
@@ -213,6 +211,50 @@ Ext.define("TSProjectStatus", {
                 Ext.Msg.alert('Problem loading data',error_message);
             }
         });
+    },
+    
+    _getStoriesFromIterations: function(iterations_by_project_oid) {
+        var deferred = Ext.create('Deft.Deferred');
+        
+        var me = this;
+        var iterations =  Ext.Object.getValues(iterations_by_project_oid);
+        var filter_array = Ext.Array.map(iterations, function(iteration) {
+            return { property:'Iteration.ObjectID', value: iteration.get('ObjectID') };
+        });
+        
+        this.logger.log("# of iterations to fetch stories for:", filter_array.length);
+        
+        var chunk_size = 100;
+        var array_of_filters = [];
+        while (filter_array.length > 0) {
+            array_of_filters.push(filter_array.splice(0, chunk_size));
+        }
+        
+        var promises = [];
+        Ext.Array.each(array_of_filters,function(filters) {
+            promises.push( function() {
+                var config = {
+                    filters: Rally.data.wsapi.Filter.or(filters),
+                    model  : 'HierarchicalRequirement',
+                    limit  : Infinity,
+                    fetch: ['FormattedID', 'Iteration','Name','ObjectID','PlanEstimate','EndDate','Project','ScheduleState','Feature','Parent'],
+                    context: { project: null }
+                };
+                return me._loadRecordsWithAPromise(config);
+            });
+        });
+        
+        
+        Deft.Chain.sequence(promises,this).then({
+            success: function(stories) {
+                deferred.resolve(stories);
+            },
+            failure: function(msg) {
+                deferred.reject(msg);
+            }
+        });
+        return deferred.promise;
+        
     },
     
     _getStoriesFromSixMonths: function() {
@@ -415,12 +457,19 @@ Ext.define("TSProjectStatus", {
                     {dataIndex:'Name', text:'Name', flex: 1 },
                     {dataIndex:'ScheduleState', text: 'State' },
                     {dataIndex:'PlanEstimate', text:'Plan Estimate' },
+                    {dataIndex:'Iteration', text:'Iteration', renderer: function(v) {
+                        if ( Ext.isEmpty(v)  ) {
+                            return '--';
+                        }
+                        return v.Name;
+                    }},
                     {dataIndex:'Project', text: 'Project', renderer: function(v) {
                         return v.Name;
                     }}
                 ],
                 store                : Ext.create('Rally.data.custom.Store', {
-                    data     : stories
+                    data     : stories,
+                    pageSize : 10000
                 })
             }]
         });
