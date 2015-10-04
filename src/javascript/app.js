@@ -19,10 +19,9 @@ Ext.define("TSProjectStatus", {
             success: function(results) {
                 var iterations_by_project_oid = results[0];
                 var stories = results[1];
-                this.logger.log(iterations_by_project_oid,stories);
+                this.logger.log('Found:',iterations_by_project_oid,stories);
                 
                 var stories_by_epmsid = this._organizeStoriesByEPMS(stories);
-                
                 this.logger.log('stories_by_epmsid', stories_by_epmsid);
                 
                 var rows = this._makeEPMSRow(stories_by_epmsid);
@@ -69,6 +68,7 @@ Ext.define("TSProjectStatus", {
         var store_config = {
             model:'Iteration',
             fetch: ['Name','ObjectID','EndDate','Project'],
+            context: { project: null },
             filters: [
                 { property:'EndDate', operator: '<', value: today_iso },
                 { property:'EndDate', operator: '>', value: six_months_ago_iso }
