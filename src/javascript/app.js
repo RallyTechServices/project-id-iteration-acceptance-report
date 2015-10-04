@@ -29,13 +29,12 @@ Ext.define("TSProjectStatus", {
                 this.logger.log(rows);
                 
                 this._displayGrid(rows);
-                
+                this.setLoading(false);
             },
             failure: function(error_message){
-                alert(error_message);
+                this.setLoading(false);
+                Ext.Msg.alert('Problem loading data',error_message);
             }
-        }).always(function() {
-            me.setLoading(false);
         });
     },
     
@@ -137,8 +136,6 @@ Ext.define("TSProjectStatus", {
             
         }
         
-        
-        
         return null;
     },
 
@@ -202,9 +199,9 @@ Ext.define("TSProjectStatus", {
             showPagingToolbar: false,
             columnCfgs: [
                 { dataIndex: 'id', text: 'EPMS ID' },
-                { dataIndex: 'total', text: 'Total' },
-                { dataIndex: 'accepted_total', text: 'Accepted Total' },
-                { dataIndex: 'accepted_percent', text: 'Accepted Percent', renderer: function(v) {
+                { dataIndex: 'total', text: 'Total (Plan&nbsp;Estimate)' },
+                { dataIndex: 'accepted_total', text: 'Accepted (Plan&nbsp;Estimate)' },
+                { dataIndex: 'accepted_percent', text: 'Accepted Percentage', renderer: function(v) {
                     if ( v < 0 ) {
                         return "N/A";
                     }
