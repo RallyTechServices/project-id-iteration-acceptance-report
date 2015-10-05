@@ -253,7 +253,7 @@ Ext.define("TSProjectStatus", {
             listeners: {
                 scope: this,
                 itemclick: function(grid, record, item, index, evt) {
-                    this._displayPopupForStories("Items for " + record.get('id'), record.get('stories'));
+                    this._displayPopupForStories("Items for Project " + record.get('id'), record.get('stories'));
                 }
             }
         });
@@ -279,13 +279,13 @@ Ext.define("TSProjectStatus", {
                     {dataIndex:'Name', text:'Name', flex: 1 },
                     {dataIndex:'ScheduleState', text: 'State' },
                     {dataIndex:'PlanEstimate', text:'Plan Estimate' },
-                    {dataIndex:'Iteration', text:'Iteration', renderer: function(v) {
+                    {dataIndex:'Iteration', text:'Iteration', width: 200, renderer: function(v) {
                         if ( Ext.isEmpty(v)  ) {
                             return '--';
                         }
-                        return v.Name;
+                        return Ext.String.format("{0} (ended: {1})",  v.Name, v.EndDate.replace(/T.*$/,""));
                     }},
-                    {dataIndex:'Project', text: 'Project', renderer: function(v) {
+                    {dataIndex:'Project', text: 'Project', width: 200, renderer: function(v) {
                         return v.Name;
                     }}
                 ],
