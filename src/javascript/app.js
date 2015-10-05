@@ -3,8 +3,12 @@ Ext.define("TSProjectStatus", {
     componentCls: 'app',
     logger: new Rally.technicalservices.Logger(),
     defaults: { margin: 10 },
+    
+    layout: { type: 'border' }, 
+    
     items: [
-        {xtype:'container',itemId:'display_box'}
+        {xtype:'container',itemId:'selector_box', region: 'north', layout: { type: 'hbox' }},
+        {xtype:'container',itemId:'display_box', region: 'center', layout: { type: 'fit' } }
     ],
         
     launch: function() {
@@ -27,10 +31,32 @@ Ext.define("TSProjectStatus", {
                 
                 this._displayGrid(rows);
                 this.setLoading(false);
+                this._addSelectors(this.down('#selector_box'));
+                
             },
             failure: function(error_message){
                 this.setLoading(false);
                 Ext.Msg.alert('Problem loading data',error_message);
+            }
+        });
+    },
+    
+    _addSelectors: function(container) {
+        container.removeAll();
+        
+        
+        var spacer = container.add({ xtype: 'container', flex: 1});
+        
+        container.add({
+            xtype:'rallybutton',
+            itemId:'export_button',
+            text: '<span class="icon-export"> </span>',
+            disabled: false,
+            listeners: {
+                scope: this,
+                click: function() {
+                    this._export();
+                }
             }
         });
     },
@@ -65,7 +91,6 @@ Ext.define("TSProjectStatus", {
                 return me._loadRecordsWithAPromise(config);
             });
         });
-        
         
         Deft.Chain.sequence(promises,this).then({
             success: function(stories) {
@@ -295,6 +320,32 @@ Ext.define("TSProjectStatus", {
                 })
             }]
         });
+    },
+    
+    _export: function(){
+        var grid = this.down('rallygrid');
+        var me = this;
+        
+        if ( !grid ) { return; }
+        
+        this.logger.log('_export',grid);
+
+        var filename = Ext.String.format('project-report.csv');
+
+        this.setLoading("Generating CSV");
+        Deft.Chain.sequence([
+            function() { return Rally.technicalservices.FileUtilities.getCSVFromGrid(this,grid) } 
+        ]).then({
+            scope: this,
+            success: function(csv){
+                if (csv && csv.length > 0){
+                    Rally.technicalservices.FileUtilities.saveCSVToFile(csv,filename);
+                } else {
+                    Rally.ui.notify.Notifier.showWarning({message: 'No data to export'});
+                }
+                
+            }
+        }).always(function() { me.setLoading(false); });
     },
     
     getOptions: function() {
