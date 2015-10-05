@@ -3,11 +3,11 @@
 <head>
     <title>Project Status</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Sun Oct 04 2015 18:50:45 GMT-0700 (PDT) -->
+    <!--  Build Date: Sun Oct 04 2015 19:48:13 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Sun Oct 04 2015 18:50:45 GMT-0700 (PDT)";
-        var CHECKSUM = 36312262110;
+        var APP_BUILD_DATE = "Sun Oct 04 2015 19:48:13 GMT-0700 (PDT)";
+        var CHECKSUM = 43329131279;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -192,10 +192,96 @@ Ext.define("TSProjectStatus", {
     launch: function() {
         var me = this;
         this.setLoading("Loading...");
+        
+        this._getWorkspaces().then({
+            scope: this,
+            success: function(workspaces) {
+                var promises = Ext.Array.map(workspaces, function(workspace) {
+                    return function() { 
+                        return me._getData( workspace.get('Name'), workspace.get('ObjectID') ) 
+                    };
+                });
+                
+                Deft.Chain.sequence(promises).then({
+                    scope: this,
+                    success: function(array_of_rows_by_epmsid) {
+                        var consolidated_rows_by_epmsid = {};
+                        // we got an array of hashes because epms id might have been
+                        // valid in more than one WS (or at least 'NONE' is)
+                        Ext.Array.each(array_of_rows_by_epmsid, function(row_hash) {
+                            Ext.Object.each( row_hash, function(epmsid, row) {
+                                if ( Ext.isEmpty(consolidated_rows_by_epmsid[epmsid])) {
+                                    consolidated_rows_by_epmsid[epmsid] = row;
+                                } else {
+                                    var old_total = consolidated_rows_by_epmsid[epmsid].total;
+                                    var adding_total = row.total;
+                                    consolidated_rows_by_epmsid[epmsid].total = old_total + adding_total;
+                                    
+                                    var old_accepted = consolidated_rows_by_epmsid[epmsid].accepted_total;
+                                    var adding_accepted= row.accepted_total;
+                                    consolidated_rows_by_epmsid[epmsid].accepted_total = old_accepted + adding_accepted;
 
+                                    consolidated_rows_by_epmsid[epmsid].accepted_percent = consolidated_rows_by_epmsid[epmsid].accepted_total / consolidated_rows_by_epmsid[epmsid].total;
+                                    
+                                    consolidated_rows_by_epmsid[epmsid].stories = Ext.Array.push( consolidated_rows_by_epmsid[epmsid].stories, row.stories);
+                                }
+                            });
+                            
+                        });
+                        
+                        var rows = Ext.Object.getValues(consolidated_rows_by_epmsid);
+                        this._displayGrid(Ext.Array.flatten(rows));
+                        this._addSelectors(this.down('#selector_box'));
+                    },
+                    failure: function(msg) {
+                        Ext.Msg.alert('Problem gathering data', msg);
+                    }
+                });
+            },
+            failure: function(msg) {
+                Ext.Msg.alert('Problem loading workspaces', msg);
+            }
+        });
+
+    },
+    
+    _getWorkspaces: function() {
+        var deferred = Ext.create('Deft.Deferred');
+        var config = {
+            model: 'Subscription',
+            fetch: ['ObjectID','Workspaces']
+        };
+        
+        this._loadRecordsWithAPromise(config).then({
+            scope: this,
+            success: function(subs) {
+                var sub = subs[0];
+                sub.getCollection('Workspaces').load({
+                    fetch: ['ObjectID','Name','State'],
+                    sorters: [{property:'Name'}],
+                    callback: function(workspaces,operation,success){
+                        var open_workspaces = Ext.Array.filter(workspaces, function(ws) {
+                            return ws.get('State') == "Open";
+                        });
+                        deferred.resolve(workspaces);
+                    }
+                });
+            },
+            failure: function(msg) {
+                deferred.reject(msg);
+            }
+        });
+        return deferred.promise;
+    },
+    
+    _getData: function(workspace_name, workspace_oid) {
+        var deferred = Ext.create('Deft.Deferred');
+        
+        this.setLoading('Loading Workspace ' + workspace_name);
+        
         Deft.Chain.pipeline([
-            this._getMostRecentIterationForEachProject,
-            this._getStoriesFromIterations
+            function() { return this._getMostRecentIterationForEachProject(workspace_oid) },
+            function(iterations) { return this._getStoriesFromIterations(iterations,workspace_oid) }
         ],this).then({
             scope: this,
             success: function(results) {
@@ -205,23 +291,24 @@ Ext.define("TSProjectStatus", {
                 this.logger.log('stories_by_epmsid', stories_by_epmsid);
                 
                 var rows = this._makeEPMSRow(stories_by_epmsid);
-                this.logger.log(rows);
                 
-                this._displayGrid(rows);
+                var rows_by_epmsid = {};
+                Ext.Array.each(rows, function(row) {
+                    rows_by_epmsid[row.id] = row;
+                });
                 this.setLoading(false);
-                this._addSelectors(this.down('#selector_box'));
-                
+                deferred.resolve(rows_by_epmsid);
             },
             failure: function(error_message){
-                this.setLoading(false);
-                Ext.Msg.alert('Problem loading data',error_message);
+                deferred.reject(error_message);
             }
         });
+        
+        return deferred.promise;
     },
     
     _addSelectors: function(container) {
         container.removeAll();
-        
         
         var spacer = container.add({ xtype: 'container', flex: 1});
         
@@ -239,7 +326,7 @@ Ext.define("TSProjectStatus", {
         });
     },
     
-    _getStoriesFromIterations: function(iterations_by_project_oid) {
+    _getStoriesFromIterations: function(iterations_by_project_oid, workspace_oid) {
         var deferred = Ext.create('Deft.Deferred');
         
         var me = this;
@@ -263,8 +350,12 @@ Ext.define("TSProjectStatus", {
                     filters: Rally.data.wsapi.Filter.or(filters),
                     model  : 'HierarchicalRequirement',
                     limit  : Infinity,
-                    fetch: ['FormattedID', 'Iteration','Name','ObjectID','PlanEstimate','EndDate','Project','ScheduleState','Feature','Parent'],
-                    context: { project: null }
+                    fetch: ['FormattedID','Iteration','Name','ObjectID','PlanEstimate',
+                        'EndDate','Project','ScheduleState','Feature','Parent','Workspace'],
+                    context: { 
+                        project: null,
+                        workspace: '/workspace/' + workspace_oid
+                    }
                 };
                 return me._loadRecordsWithAPromise(config);
             });
@@ -302,7 +393,7 @@ Ext.define("TSProjectStatus", {
         return this._loadRecordsWithAPromise(store_config);
     },
     
-    _getMostRecentIterationForEachProject: function() {
+    _getMostRecentIterationForEachProject: function(workspace_oid) {
         var deferred = Ext.create('Deft.Deferred');
         
         var today = new Date();
@@ -313,7 +404,10 @@ Ext.define("TSProjectStatus", {
         var store_config = {
             model:'Iteration',
             fetch: ['Name','ObjectID','EndDate','Project'],
-            context: { project: null },
+            context: { 
+                project: null,
+                workspace: '/workspace/' + workspace_oid
+            },
             filters: [
                 { property:'EndDate', operator: '<', value: today_iso },
                 { property:'EndDate', operator: '>', value: six_months_ago_iso }
@@ -436,7 +530,10 @@ Ext.define("TSProjectStatus", {
     },
     
     _displayGrid: function(rows){
-        var store = Ext.create('Rally.data.custom.Store',{ data: rows });
+        var store = Ext.create('Rally.data.custom.Store',{ 
+            data: rows,
+            pageSize: 5000
+        });
         
         this.down('#display_box').add({
             xtype: 'rallygrid',
@@ -489,6 +586,9 @@ Ext.define("TSProjectStatus", {
                         return Ext.String.format("{0} (ended: {1})",  v.Name, v.EndDate.replace(/T.*$/,""));
                     }},
                     {dataIndex:'Project', text: 'Project', width: 200, renderer: function(v) {
+                        return v.Name;
+                    }},
+                    {dataIndex:'Workspace', text: 'Workspace', width: 200, renderer: function(v) {
                         return v.Name;
                     }}
                 ],
