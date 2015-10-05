@@ -4,9 +4,12 @@ A report of items in the most recently completed sprint that are accepted and as
 
 ## Development Notes
 
+* This app will gather data from across workspaces.  Performance could be a problem.
+
 * The promises are pipelined to get the valid iterations first because multiple 
 teams might have a different "last iteration" and so these are used to limit the
 number of stories that come back.
+
 * This uses utilities for exporting that are aware of custom store-backed grids.
 
 ### First Load
