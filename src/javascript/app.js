@@ -6,6 +6,12 @@ Ext.define("TSProjectStatus", {
     
     layout: { type: 'border' }, 
     
+    config: {
+        defaultSettings: {
+            showAllWorkspaces: true
+        }
+    },
+    
     items: [
         {xtype:'container',itemId:'selector_box', region: 'north', layout: { type: 'hbox' }},
         {xtype:'container',itemId:'display_box', region: 'center', layout: { type: 'fit' } }
@@ -82,10 +88,15 @@ Ext.define("TSProjectStatus", {
                     fetch: ['ObjectID','Name','State'],
                     sorters: [{property:'Name'}],
                     callback: function(workspaces,operation,success){
+                        
                         var open_workspaces = Ext.Array.filter(workspaces, function(ws) {
-                            return ws.get('State') == "Open";
+                            if ( Rally.getApp().getSetting('showAllWorkspaces') == false ) {
+                                return ( ws.get('ObjectID') == Rally.getApp().getContext().getWorkspace().ObjectID );
+                            }
+                            
+                            return ( ws.get('State') == "Open" ) ;
                         });
-                        deferred.resolve(workspaces);
+                        deferred.resolve(open_workspaces);
                     }
                 });
             },
@@ -356,6 +367,7 @@ Ext.define("TSProjectStatus", {
             data: rows,
             pageSize: 5000
         });
+        this.down('#display_box').removeAll();
         
         this.down('#display_box').add({
             xtype: 'rallygrid',
@@ -472,5 +484,19 @@ Ext.define("TSProjectStatus", {
         this.logger.log('onSettingsUpdate',settings);
         // Ext.apply(this, settings);
         this.launch();
+    },
+    
+    getSettingsFields: function() {
+        var me = this;
+        
+        return [{
+            name: 'showAllWorkspaces',
+            xtype: 'rallycheckboxfield',
+            fieldLabel: 'Show All Workspaces',
+            labelWidth: 135,
+            labelAlign: 'left',
+            minWidth: 200,
+            margin: 10
+        }];
     }
 });
