@@ -421,16 +421,34 @@ Ext.define("TSProjectStatus", {
                     }
                     return Ext.util.Format.number(v*100,'0.0') + '%';
                 }},
-                { dataIndex: 'iteration_name', text: 'Iteration' },
-                { dataIndex: 'iteration_start', text: 'Start' , renderer: function(v) {
+                { dataIndex: 'iteration_name', text: 'Iteration', renderer: function(v, meta, record) {
                     if ( Ext.isEmpty(v) ) { return "--"; }
+                    if ( record.get('id') == "-- NONE -- " ) {
+                        return "N/A";
+                    }
+                    return v;
+                } },
+                { dataIndex: 'iteration_start', text: 'Start' , renderer: function(v, meta, record) {
+                    if ( Ext.isEmpty(v) ) { return "--"; }
+                    if ( record.get('id') == "-- NONE -- " ) {
+                        return "N/A";
+                    }
                     return Ext.util.Format.date(v,"m/d/Y");
                 }},
-                { dataIndex: 'iteration_end', text: 'End' , renderer: function(v) {
+                { dataIndex: 'iteration_end', text: 'End' , renderer: function(v, meta, record) {
                     if ( Ext.isEmpty(v) ) { return "--"; }
+                    if ( record.get('id') == "-- NONE -- " ) {
+                        return "N/A";
+                    }
                     return Ext.util.Format.date(v,"m/d/Y");
                 }},
-                { dataIndex: 'workspace', text: 'Workspace' }
+                { dataIndex: 'workspace', text: 'Workspace', renderer: function(value, meta, record) {
+                    if ( record.get('id') == "-- NONE -- " ) {
+                        return "N/A";
+                    }
+                    
+                    return value;
+                } }
             ],
             listeners: {
                 scope: this,

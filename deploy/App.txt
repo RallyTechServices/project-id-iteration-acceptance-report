@@ -3,11 +3,11 @@
 <head>
     <title>Project Status</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Thu Oct 08 2015 16:44:01 GMT-0700 (PDT) -->
+    <!--  Build Date: Thu Oct 08 2015 16:47:50 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Thu Oct 08 2015 16:44:01 GMT-0700 (PDT)";
-        var CHECKSUM = 48643439062;
+        var APP_BUILD_DATE = "Thu Oct 08 2015 16:47:50 GMT-0700 (PDT)";
+        var CHECKSUM = 49617153588;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -599,16 +599,34 @@ Ext.define("TSProjectStatus", {
                     }
                     return Ext.util.Format.number(v*100,'0.0') + '%';
                 }},
-                { dataIndex: 'iteration_name', text: 'Iteration' },
-                { dataIndex: 'iteration_start', text: 'Start' , renderer: function(v) {
+                { dataIndex: 'iteration_name', text: 'Iteration', renderer: function(v, meta, record) {
                     if ( Ext.isEmpty(v) ) { return "--"; }
+                    if ( record.get('id') == "-- NONE -- " ) {
+                        return "N/A";
+                    }
+                    return v;
+                } },
+                { dataIndex: 'iteration_start', text: 'Start' , renderer: function(v, meta, record) {
+                    if ( Ext.isEmpty(v) ) { return "--"; }
+                    if ( record.get('id') == "-- NONE -- " ) {
+                        return "N/A";
+                    }
                     return Ext.util.Format.date(v,"m/d/Y");
                 }},
-                { dataIndex: 'iteration_end', text: 'End' , renderer: function(v) {
+                { dataIndex: 'iteration_end', text: 'End' , renderer: function(v, meta, record) {
                     if ( Ext.isEmpty(v) ) { return "--"; }
+                    if ( record.get('id') == "-- NONE -- " ) {
+                        return "N/A";
+                    }
                     return Ext.util.Format.date(v,"m/d/Y");
                 }},
-                { dataIndex: 'workspace', text: 'Workspace' }
+                { dataIndex: 'workspace', text: 'Workspace', renderer: function(value, meta, record) {
+                    if ( record.get('id') == "-- NONE -- " ) {
+                        return "N/A";
+                    }
+                    
+                    return value;
+                } }
             ],
             listeners: {
                 scope: this,
