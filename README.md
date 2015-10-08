@@ -2,6 +2,8 @@
 
 A report of items in the most recently completed sprint that are accepted and associated with an id embedded in the project name or a second level PI.
 
+* There is a setting in App Settings... that will allow the administrator to configure this to show the data from the current workspace or from all workspaces
+
 ## Development Notes
 
 * This app will gather data from across workspaces.  Performance could be a problem.

@@ -8,7 +8,7 @@ Ext.define("TSProjectStatus", {
     
     config: {
         defaultSettings: {
-            showAllWorkspaces: true
+            showAllWorkspaces: false
         }
     },
     
@@ -183,8 +183,9 @@ Ext.define("TSProjectStatus", {
                     filters: Rally.data.wsapi.Filter.or(filters),
                     model  : 'HierarchicalRequirement',
                     limit  : Infinity,
-                    fetch: ['FormattedID','Iteration','Name','ObjectID','PlanEstimate',
-                        'EndDate','Project','ScheduleState','Feature','Parent','Workspace'],
+                    fetch: ['FormattedID','Iteration','StartDate', 'EndDate',
+                        'Name','ObjectID','PlanEstimate',
+                        'Project','ScheduleState','Feature','Parent','Workspace'],
                     context: { 
                         project: null,
                         workspace: '/workspace/' + workspace_oid
@@ -214,7 +215,7 @@ Ext.define("TSProjectStatus", {
         
         var store_config = {
             model:'HierarchicalRequirement',
-            fetch: ['FormattedID', 'Iteration','Name','ObjectID','PlanEstimate','EndDate','Project','ScheduleState','Feature','Parent'],
+            fetch: ['FormattedID', 'Iteration','EndDate','StartDate','Name','ObjectID','PlanEstimate','Project','ScheduleState','Feature','Parent'],
             context: { project: null },
             filters: [
                 { property:'Iteration.EndDate', operator: '<', value: today_iso },
@@ -336,6 +337,22 @@ Ext.define("TSProjectStatus", {
     _makeEPMSRow: function(stories_by_epmsid){
         var rows = [];
         Ext.Object.each(stories_by_epmsid, function(id,stories)  {
+            var iteration_name = "";
+            var iteration_start = "";
+            var iteration_end = "";
+            var workspace_name = "Multiple";
+
+            Ext.Array.each(stories, function(story) {
+                if ( story.get('Iteration') ) { 
+                    iteration_name =  story.get('Iteration').Name;
+                    iteration_start = Rally.util.DateTime.fromIsoString( story.get('Iteration').StartDate );
+                    iteration_end =   Rally.util.DateTime.fromIsoString( story.get('Iteration').EndDate );
+                }
+                if ( story.get('Workspace') ) {
+                    workspace_name = story.get('Workspace').Name;
+                }
+            });
+            
             var total = Ext.Array.sum ( Ext.Array.map(stories, function(story) {
                 return story.get('PlanEstimate') || 0;
             }));
@@ -351,12 +368,18 @@ Ext.define("TSProjectStatus", {
             if ( total > 0 ) {
                 accepted_percent = accepted_total / total;
             }
+            
+            
             rows.push({
                 id: id,
                 total: total,
                 accepted_total: accepted_total,
                 accepted_percent: accepted_percent,
-                stories: stories
+                stories: stories,
+                iteration_name: iteration_name,
+                iteration_start: iteration_start,
+                iteration_end: iteration_end,
+                workspace: workspace_name
             });
         });
         return rows;
@@ -382,7 +405,17 @@ Ext.define("TSProjectStatus", {
                         return "N/A";
                     }
                     return Ext.util.Format.number(v*100,'0.0') + '%';
-                }}
+                }},
+                { dataIndex: 'iteration_name', text: 'Iteration' },
+                { dataIndex: 'iteration_start', text: 'Start' , renderer: function(v) {
+                    if ( Ext.isEmpty(v) ) { return "--"; }
+                    return Ext.util.Format.date(v,"m/d/Y");
+                }},
+                { dataIndex: 'iteration_end', text: 'End' , renderer: function(v) {
+                    if ( Ext.isEmpty(v) ) { return "--"; }
+                    return Ext.util.Format.date(v,"m/d/Y");
+                }},
+                { dataIndex: 'workspace', text: 'Workspace' }
             ],
             listeners: {
                 scope: this,
