@@ -180,7 +180,7 @@ Ext.define("TSProjectStatus", {
         Ext.Array.each(array_of_filters,function(filters) {
             promises.push( function() {
                 var config = {
-                    filters: Rally.data.wsapi.Filter.or(filters),
+                    filters: Rally.data.wsapi.Filter.or(filters).and({property:'Project.Name',operator:'!contains', value:'Archive'}),
                     model  : 'HierarchicalRequirement',
                     limit  : Infinity,
                     fetch: ['FormattedID','Iteration','StartDate', 'EndDate',
@@ -368,7 +368,6 @@ Ext.define("TSProjectStatus", {
             if ( total > 0 ) {
                 accepted_percent = accepted_total / total;
             }
-            
             
             rows.push({
                 id: id,

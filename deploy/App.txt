@@ -3,11 +3,11 @@
 <head>
     <title>Project Status</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Thu Oct 08 2015 16:22:42 GMT-0700 (PDT) -->
+    <!--  Build Date: Thu Oct 08 2015 16:25:33 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Thu Oct 08 2015 16:22:42 GMT-0700 (PDT)";
-        var CHECKSUM = 47383251135;
+        var APP_BUILD_DATE = "Thu Oct 08 2015 16:25:33 GMT-0700 (PDT)";
+        var CHECKSUM = 47585465953;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -358,7 +358,7 @@ Ext.define("TSProjectStatus", {
         Ext.Array.each(array_of_filters,function(filters) {
             promises.push( function() {
                 var config = {
-                    filters: Rally.data.wsapi.Filter.or(filters),
+                    filters: Rally.data.wsapi.Filter.or(filters).and({property:'Project.Name',operator:'!contains', value:'Archive'}),
                     model  : 'HierarchicalRequirement',
                     limit  : Infinity,
                     fetch: ['FormattedID','Iteration','StartDate', 'EndDate',
@@ -546,7 +546,6 @@ Ext.define("TSProjectStatus", {
             if ( total > 0 ) {
                 accepted_percent = accepted_total / total;
             }
-            
             
             rows.push({
                 id: id,
