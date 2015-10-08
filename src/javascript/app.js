@@ -184,7 +184,7 @@ Ext.define("TSProjectStatus", {
                     model  : 'HierarchicalRequirement',
                     limit  : Infinity,
                     fetch: ['FormattedID','Iteration','StartDate', 'EndDate',
-                        'Name','ObjectID','PlanEstimate',
+                        'Name','ObjectID','PlanEstimate','AcceptedDate',
                         'Project','ScheduleState','Feature','Parent','Workspace'],
                     context: { 
                         project: null,
@@ -215,7 +215,7 @@ Ext.define("TSProjectStatus", {
         
         var store_config = {
             model:'HierarchicalRequirement',
-            fetch: ['FormattedID', 'Iteration','EndDate','StartDate','Name','ObjectID','PlanEstimate','Project','ScheduleState','Feature','Parent'],
+            fetch: ['FormattedID', 'Iteration','EndDate','StartDate','Name','ObjectID','PlanEstimate','Project','AcceptedDate','ScheduleState','Feature','Parent'],
             context: { project: null },
             filters: [
                 { property:'Iteration.EndDate', operator: '<', value: today_iso },
@@ -358,7 +358,7 @@ Ext.define("TSProjectStatus", {
             }));
             
             var accepted_total = Ext.Array.sum ( Ext.Array.map(stories, function(story) {
-                if ( story.get('ScheduleState') == "Accepted" ) {
+                if ( !Ext.isEmpty( story.get('AcceptedDate') ) ) {
                     return story.get('PlanEstimate') || 0;
                 } 
                 return 0;

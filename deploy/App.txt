@@ -3,11 +3,11 @@
 <head>
     <title>Project Status</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Thu Oct 08 2015 16:18:03 GMT-0700 (PDT) -->
+    <!--  Build Date: Thu Oct 08 2015 16:22:42 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Thu Oct 08 2015 16:18:03 GMT-0700 (PDT)";
-        var CHECKSUM = 47292720270;
+        var APP_BUILD_DATE = "Thu Oct 08 2015 16:22:42 GMT-0700 (PDT)";
+        var CHECKSUM = 47383251135;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -362,7 +362,7 @@ Ext.define("TSProjectStatus", {
                     model  : 'HierarchicalRequirement',
                     limit  : Infinity,
                     fetch: ['FormattedID','Iteration','StartDate', 'EndDate',
-                        'Name','ObjectID','PlanEstimate',
+                        'Name','ObjectID','PlanEstimate','AcceptedDate',
                         'Project','ScheduleState','Feature','Parent','Workspace'],
                     context: { 
                         project: null,
@@ -393,7 +393,7 @@ Ext.define("TSProjectStatus", {
         
         var store_config = {
             model:'HierarchicalRequirement',
-            fetch: ['FormattedID', 'Iteration','EndDate','StartDate','Name','ObjectID','PlanEstimate','Project','ScheduleState','Feature','Parent'],
+            fetch: ['FormattedID', 'Iteration','EndDate','StartDate','Name','ObjectID','PlanEstimate','Project','AcceptedDate','ScheduleState','Feature','Parent'],
             context: { project: null },
             filters: [
                 { property:'Iteration.EndDate', operator: '<', value: today_iso },
@@ -536,7 +536,7 @@ Ext.define("TSProjectStatus", {
             }));
             
             var accepted_total = Ext.Array.sum ( Ext.Array.map(stories, function(story) {
-                if ( story.get('ScheduleState') == "Accepted" ) {
+                if ( !Ext.isEmpty( story.get('AcceptedDate') ) ) {
                     return story.get('PlanEstimate') || 0;
                 } 
                 return 0;
