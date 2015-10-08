@@ -120,7 +120,17 @@ Ext.define("TSProjectStatus", {
             success: function(results) {
                 var stories = Ext.Array.flatten(results);
                 
-                var stories_by_epmsid = this._organizeStoriesByEPMS(stories);
+                var non_archived_stories = Ext.Array.filter(stories, function(story){
+                    var feature = story.get('Feature');
+                    if ( feature && feature.Parent ) {
+                        if ( feature.Parent.Archived == true ) { 
+                            return false;
+                        }
+                    }
+                    return true;
+                });
+                
+                var stories_by_epmsid = this._organizeStoriesByEPMS(non_archived_stories);
                 this.logger.log('stories_by_epmsid', stories_by_epmsid);
                 
                 var rows = this._makeEPMSRow(stories_by_epmsid);
@@ -178,13 +188,19 @@ Ext.define("TSProjectStatus", {
         
         var promises = [];
         Ext.Array.each(array_of_filters,function(filters) {
+            
+            var archived_filters = Rally.data.wsapi.Filter.and([
+                {property:'Project.Name',operator:'!contains', value:'Archive'},
+                {property:'Project.Parent.Name',operator:'!contains', value:'Archive'}
+            ]);
+            
             promises.push( function() {
                 var config = {
-                    filters: Rally.data.wsapi.Filter.or(filters).and({property:'Project.Name',operator:'!contains', value:'Archive'}),
+                    filters: Rally.data.wsapi.Filter.or(filters).and(archived_filters),
                     model  : 'HierarchicalRequirement',
                     limit  : Infinity,
                     fetch: ['FormattedID','Iteration','StartDate', 'EndDate',
-                        'Name','ObjectID','PlanEstimate','AcceptedDate',
+                        'Name','ObjectID','PlanEstimate','AcceptedDate','Archived',
                         'Project','ScheduleState','Feature','Parent','Workspace'],
                     context: { 
                         project: null,

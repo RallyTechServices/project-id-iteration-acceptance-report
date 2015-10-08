@@ -2,7 +2,12 @@
 
 A report of items in the most recently completed sprint that are accepted and associated with an id embedded in the project name or a second level PI.
 
-* There is a setting in App Settings... that will allow the administrator to configure this to show the data from the current workspace or from all workspaces
+This app will ignore stories that are:
+    *  in a project with "Archive" in the name
+    *  under a PI that has "Archived" set to true
+
+* There is a setting in App Settings... that will allow the administrator to configure this to show the data from the current workspace or from 
+all workspaces
 
 ## Development Notes
 
