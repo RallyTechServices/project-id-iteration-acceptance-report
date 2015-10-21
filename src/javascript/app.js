@@ -117,9 +117,7 @@ Ext.define("TSProjectStatus", {
             function(iterations) { return this._getStoriesFromIterations(iterations,workspace_oid) }
         ],this).then({
             scope: this,
-            success: function(results) {
-                var stories = Ext.Array.flatten(results);
-                
+            success: function(stories) {
                 var non_archived_stories = Ext.Array.filter(stories, function(story){
                     var feature = story.get('Feature');
                     if ( feature && feature.Parent ) {
@@ -212,8 +210,11 @@ Ext.define("TSProjectStatus", {
         });
         
         Deft.Chain.sequence(promises,this).then({
-            success: function(stories) {
-                deferred.resolve(stories);
+            scope: this,
+            success: function(results) {
+                var stories = Ext.Array.flatten(results);
+                var iterations_without_stories = this._replaceIterationsWithoutStories(iterations, stories);
+                deferred.resolve(Ext.Array.merge(stories,iterations_without_stories));
             },
             failure: function(msg) {
                 deferred.reject(msg);
@@ -221,6 +222,30 @@ Ext.define("TSProjectStatus", {
         });
         return deferred.promise;
         
+    },
+    
+    _replaceIterationsWithoutStories: function(iterations, stories){
+        this.logger.log('_replaceIterationsWithoutStories', iterations, stories);
+        var iterations_that_have_stories = Ext.Array.map(stories, function(story){
+            return story.get('Iteration').ObjectID;
+        });
+        
+        var placeholder_stories = [];
+        Ext.Array.each(iterations, function(iteration) {
+            if ( !Ext.Array.contains(iterations_that_have_stories, iteration.get('ObjectID') ) )  {
+                var fake_story = Ext.create('FakeStory',{
+                    ObjectID: '-1',
+                    PlanEstimate: 0, 
+                    Iteration: iteration.getData(),
+                    Project: iteration.get('Project'),
+                    Workspace: iteration.get('Workspace')
+                });
+//                
+                placeholder_stories.push(fake_story);
+            }
+        });
+        this.logger.log('No stories:', placeholder_stories);
+        return placeholder_stories;
     },
     
     _getStoriesFromSixMonths: function() {
@@ -253,7 +278,7 @@ Ext.define("TSProjectStatus", {
         
         var store_config = {
             model:'Iteration',
-            fetch: ['Name','ObjectID','EndDate','Project'],
+            fetch: ['Name','ObjectID','EndDate','Project','Workspace','StartDate'],
             context: { 
                 project: null,
                 workspace: '/workspace/' + workspace_oid

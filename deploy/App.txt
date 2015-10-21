@@ -3,11 +3,11 @@
 <head>
     <title>Project Status</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Thu Oct 08 2015 16:47:50 GMT-0700 (PDT) -->
+    <!--  Build Date: Wed Oct 21 2015 11:03:43 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Thu Oct 08 2015 16:47:50 GMT-0700 (PDT)";
-        var CHECKSUM = 49617153588;
+        var APP_BUILD_DATE = "Wed Oct 21 2015 11:03:43 GMT-0700 (PDT)";
+        var CHECKSUM = 53070121429;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -176,6 +176,16 @@ Ext.define('Rally.technicalservices.Logger',{
 
 });
 
+Ext.define('FakeStory', {
+    extend: 'Ext.data.Model',
+    fields: [
+        {name: 'ObjectID',  type: 'int', defaultValue: -1},
+        {name: 'PlanEstimate', type: 'int', defaultValue: 0},
+        {name: 'Iteration', type:'object'},
+        {name: 'Project', type:'object'},
+        {name: 'Workspace', type:'object'}
+    ]
+});
 Ext.define("TSProjectStatus", {
     extend: 'Rally.app.App',
     componentCls: 'app',
@@ -295,9 +305,7 @@ Ext.define("TSProjectStatus", {
             function(iterations) { return this._getStoriesFromIterations(iterations,workspace_oid) }
         ],this).then({
             scope: this,
-            success: function(results) {
-                var stories = Ext.Array.flatten(results);
-                
+            success: function(stories) {
                 var non_archived_stories = Ext.Array.filter(stories, function(story){
                     var feature = story.get('Feature');
                     if ( feature && feature.Parent ) {
@@ -390,8 +398,11 @@ Ext.define("TSProjectStatus", {
         });
         
         Deft.Chain.sequence(promises,this).then({
-            success: function(stories) {
-                deferred.resolve(stories);
+            scope: this,
+            success: function(results) {
+                var stories = Ext.Array.flatten(results);
+                var iterations_without_stories = this._replaceIterationsWithoutStories(iterations, stories);
+                deferred.resolve(Ext.Array.merge(stories,iterations_without_stories));
             },
             failure: function(msg) {
                 deferred.reject(msg);
@@ -399,6 +410,30 @@ Ext.define("TSProjectStatus", {
         });
         return deferred.promise;
         
+    },
+    
+    _replaceIterationsWithoutStories: function(iterations, stories){
+        this.logger.log('_replaceIterationsWithoutStories', iterations, stories);
+        var iterations_that_have_stories = Ext.Array.map(stories, function(story){
+            return story.get('Iteration').ObjectID;
+        });
+        
+        var placeholder_stories = [];
+        Ext.Array.each(iterations, function(iteration) {
+            if ( !Ext.Array.contains(iterations_that_have_stories, iteration.get('ObjectID') ) )  {
+                var fake_story = Ext.create('FakeStory',{
+                    ObjectID: '-1',
+                    PlanEstimate: 0, 
+                    Iteration: iteration.getData(),
+                    Project: iteration.get('Project'),
+                    Workspace: iteration.get('Workspace')
+                });
+//                
+                placeholder_stories.push(fake_story);
+            }
+        });
+        this.logger.log('No stories:', placeholder_stories);
+        return placeholder_stories;
     },
     
     _getStoriesFromSixMonths: function() {
@@ -431,7 +466,7 @@ Ext.define("TSProjectStatus", {
         
         var store_config = {
             model:'Iteration',
-            fetch: ['Name','ObjectID','EndDate','Project'],
+            fetch: ['Name','ObjectID','EndDate','Project','Workspace','StartDate'],
             context: { 
                 project: null,
                 workspace: '/workspace/' + workspace_oid
