@@ -8,8 +8,7 @@ Ext.define('Rally.technicalservices.FileUtilities', {
             var blob = new Blob([csv],type_object);
             saveAs(blob,file_name);
     },
-    saveTextAsFile: function(textToWrite, fileName)
-    {
+    saveTextAsFile: function(textToWrite, fileName) {
         var textFileAsBlob = new Blob([textToWrite], {type:'text/plain'});
         var fileNameToSaveAs = fileName;
 
@@ -141,9 +140,9 @@ Ext.define('Rally.technicalservices.FileUtilities', {
         Ext.Array.each(columns,function(column){
             if ( column.dataIndex || column.renderer ) {
                 if ( column.csvText ) {
-                    headers.push(column.csvText);
+                    headers.push(column.csvText.replace('&nbsp;',' '));
                 } else if ( column.text )  {
-                    headers.push(column.text);
+                    headers.push(column.text.replace('&nbsp;',' '));
                 }
             }
         });

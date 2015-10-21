@@ -3,11 +3,11 @@
 <head>
     <title>Project Status</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Wed Oct 21 2015 11:03:43 GMT-0700 (PDT) -->
+    <!--  Build Date: Wed Oct 21 2015 11:08:50 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Wed Oct 21 2015 11:03:43 GMT-0700 (PDT)";
-        var CHECKSUM = 53070121429;
+        var APP_BUILD_DATE = "Wed Oct 21 2015 11:08:50 GMT-0700 (PDT)";
+        var CHECKSUM = 53178196277;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -1210,8 +1210,7 @@ Ext.define('Rally.technicalservices.FileUtilities', {
             var blob = new Blob([csv],type_object);
             saveAs(blob,file_name);
     },
-    saveTextAsFile: function(textToWrite, fileName)
-    {
+    saveTextAsFile: function(textToWrite, fileName) {
         var textFileAsBlob = new Blob([textToWrite], {type:'text/plain'});
         var fileNameToSaveAs = fileName;
 
@@ -1343,9 +1342,9 @@ Ext.define('Rally.technicalservices.FileUtilities', {
         Ext.Array.each(columns,function(column){
             if ( column.dataIndex || column.renderer ) {
                 if ( column.csvText ) {
-                    headers.push(column.csvText);
+                    headers.push(column.csvText.replace('&nbsp;',' '));
                 } else if ( column.text )  {
-                    headers.push(column.text);
+                    headers.push(column.text.replace('&nbsp;',' '));
                 }
             }
         });
