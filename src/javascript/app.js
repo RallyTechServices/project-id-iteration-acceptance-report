@@ -114,7 +114,7 @@ Ext.define("TSProjectStatus", {
         
         Deft.Chain.pipeline([
             function() { return this._getMostRecentIterationForEachProject(workspace_oid) },
-            function(iterations) { return this._getStoriesFromIterations(iterations,workspace_oid) }
+            function(iterations) { return this._getScheduledItemsFromIterations(iterations,workspace_oid) }
         ],this).then({
             scope: this,
             success: function(stories) {
@@ -167,7 +167,7 @@ Ext.define("TSProjectStatus", {
         });
     },
     
-    _getStoriesFromIterations: function(iterations_by_project_oid, workspace_oid) {
+    _getScheduledItemsFromIterations: function(iterations_by_project_oid, workspace_oid) {
         var deferred = Ext.create('Deft.Deferred');
         
         var me = this;
@@ -192,21 +192,26 @@ Ext.define("TSProjectStatus", {
                 {property:'Project.Parent.Name',operator:'!contains', value:'Archive'}
             ]);
             
-            promises.push( function() {
-                var config = {
-                    filters: Rally.data.wsapi.Filter.or(filters).and(archived_filters),
-                    model  : 'HierarchicalRequirement',
-                    limit  : Infinity,
-                    fetch: ['FormattedID','Iteration','StartDate', 'EndDate',
-                        'Name','ObjectID','PlanEstimate','AcceptedDate','Archived',
-                        'Project','ScheduleState','Feature','Parent','Workspace'],
-                    context: { 
-                        project: null,
-                        workspace: '/workspace/' + workspace_oid
-                    }
-                };
-                return me._loadRecordsWithAPromise(config);
+            var schedulable_model_names = ['HierarchicalRequirement','Defect','TestSet','DefectSuite'];
+            
+            Ext.Array.each(schedulable_model_names,function(model_name){
+                promises.push( function() {
+                    var config = {
+                        filters: Rally.data.wsapi.Filter.or(filters).and(archived_filters),
+                        model  : model_name,
+                        limit  : Infinity,
+                        fetch: ['FormattedID','Iteration','StartDate', 'EndDate',
+                            'Name','ObjectID','PlanEstimate','AcceptedDate','Archived',
+                            'Project','ScheduleState','Feature','Parent','Workspace'],
+                        context: { 
+                            project: null,
+                            workspace: '/workspace/' + workspace_oid
+                        }
+                    };
+                    return me._loadRecordsWithAPromise(config);
+                });
             });
+            
         });
         
         Deft.Chain.sequence(promises,this).then({
