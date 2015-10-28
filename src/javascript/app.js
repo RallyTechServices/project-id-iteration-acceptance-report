@@ -322,10 +322,9 @@ Ext.define("TSProjectStatus", {
     _organizeStoriesByEPMS: function(stories) {
         var stories_by_epms = {};
         Ext.Array.each(stories, function(story){
-            var epms_id = this._getEPMSIdFromStory(story);
-            if ( epms_id == null ) { 
-                epms_id = "-- NONE -- ";
-            }
+            story = this._getEPMSIdFromStory(story);
+            var epms_id = story.get('epms_id');
+
             if ( !stories_by_epms[epms_id] ) {
                 stories_by_epms[epms_id] = [];
             }
@@ -343,19 +342,24 @@ Ext.define("TSProjectStatus", {
         var project = story.get('Project');
         
         if ( /10\d\d\d\d/.test(project.Name) ) {
-            return /(10\d\d\d\d)/.exec(project.Name)[1];
+            story.set('epms_id', /(10\d\d\d\d)/.exec(project.Name)[1] );
+            story.set('epms_source', 'project');
+            return story;
         }
         
         var feature = story.get('Feature');
         if ( feature && feature.Parent ) {
             
             if ( /10\d\d\d\d/.test(feature.Parent.Name) ) {
-                return /(10\d\d\d\d)/.exec(feature.Parent.Name)[1];
+                story.set('epms_id', /(10\d\d\d\d)/.exec(feature.Parent.Name)[1] );
+                story.set('epms_source', 'feature');
+                return story;
             }
             
         }
         
-        return null;
+        story.set('epms_id', '-- NONE --');
+        return story;
     },
 
     _loadRecordsWithAPromise: function(store_config){
@@ -384,6 +388,7 @@ Ext.define("TSProjectStatus", {
         var rows = [];
         Ext.Object.each(stories_by_epmsid, function(id,stories)  {
             var iteration_name = "";
+            var project_space = "";
             var iteration_start = "";
             var iteration_end = "";
             var workspace_name = "Multiple";
@@ -396,6 +401,9 @@ Ext.define("TSProjectStatus", {
                 }
                 if ( story.get('Workspace') ) {
                     workspace_name = story.get('Workspace').Name;
+                }
+                if ( story.get('epms_source') == 'project' && story.get('Project') ) {
+                    project_space = story.get('Project').Name;
                 }
             });
             
@@ -424,7 +432,8 @@ Ext.define("TSProjectStatus", {
                 iteration_name: iteration_name,
                 iteration_start: iteration_start,
                 iteration_end: iteration_end,
-                workspace: workspace_name
+                workspace: workspace_name,
+                project_space: project_space
             });
         });
         return rows;
@@ -472,6 +481,7 @@ Ext.define("TSProjectStatus", {
                     }
                     return Ext.util.Format.date(v,"m/d/Y");
                 }},
+                { dataIndex: 'project_space', text: 'Project Space' },
                 { dataIndex: 'workspace', text: 'Workspace', renderer: function(value, meta, record) {
                     if ( record.get('id') == "-- NONE -- " ) {
                         return "N/A";
