@@ -3,11 +3,11 @@
 <head>
     <title>Project Status</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Wed Oct 28 2015 16:05:23 GMT-0700 (PDT) -->
+    <!--  Build Date: Wed Nov 11 2015 13:24:04 GMT-0800 (PST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Wed Oct 28 2015 16:05:23 GMT-0700 (PDT)";
-        var CHECKSUM = 54751508825;
+        var APP_BUILD_DATE = "Wed Nov 11 2015 13:24:04 GMT-0800 (PST)";
+        var CHECKSUM = 54873886970;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -307,9 +307,11 @@ Ext.define("TSProjectStatus", {
             scope: this,
             success: function(stories) {
                 var non_archived_stories = Ext.Array.filter(stories, function(story){
+                    
                     var feature = story.get('Feature');
                     if ( feature && feature.Parent ) {
                         if ( feature.Parent.Archived == true ) { 
+                            console.log('+++', story.get('FormattedID'));
                             return false;
                         }
                     }
@@ -406,6 +408,7 @@ Ext.define("TSProjectStatus", {
             scope: this,
             success: function(results) {
                 var stories = Ext.Array.flatten(results);
+
                 var iterations_without_stories = this._replaceIterationsWithoutStories(iterations, stories);
                 deferred.resolve(Ext.Array.merge(stories,iterations_without_stories));
             },
@@ -669,7 +672,7 @@ Ext.define("TSProjectStatus", {
                     }
                     return Ext.util.Format.date(v,"m/d/Y");
                 }},
-                { dataIndex: 'project_space', text: 'Project Space' },
+                { dataIndex: 'project_space', text: 'Project' },
                 { dataIndex: 'workspace', text: 'Workspace', renderer: function(value, meta, record) {
                     if ( record.get('id') == "-- NONE -- " ) {
                         return "N/A";

@@ -119,9 +119,11 @@ Ext.define("TSProjectStatus", {
             scope: this,
             success: function(stories) {
                 var non_archived_stories = Ext.Array.filter(stories, function(story){
+                    
                     var feature = story.get('Feature');
                     if ( feature && feature.Parent ) {
                         if ( feature.Parent.Archived == true ) { 
+                            console.log('+++', story.get('FormattedID'));
                             return false;
                         }
                     }
@@ -218,6 +220,7 @@ Ext.define("TSProjectStatus", {
             scope: this,
             success: function(results) {
                 var stories = Ext.Array.flatten(results);
+
                 var iterations_without_stories = this._replaceIterationsWithoutStories(iterations, stories);
                 deferred.resolve(Ext.Array.merge(stories,iterations_without_stories));
             },
@@ -481,7 +484,7 @@ Ext.define("TSProjectStatus", {
                     }
                     return Ext.util.Format.date(v,"m/d/Y");
                 }},
-                { dataIndex: 'project_space', text: 'Project Space' },
+                { dataIndex: 'project_space', text: 'Project' },
                 { dataIndex: 'workspace', text: 'Workspace', renderer: function(value, meta, record) {
                     if ( record.get('id') == "-- NONE -- " ) {
                         return "N/A";
