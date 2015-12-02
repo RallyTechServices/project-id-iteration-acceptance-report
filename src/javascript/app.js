@@ -407,6 +407,11 @@ Ext.define("TSProjectStatus", {
                 }
                 if ( story.get('epms_source') == 'project' && story.get('Project') ) {
                     project_space = story.get('Project').Name;
+                } else {
+                    var feature = story.get('Feature');
+                    if ( feature ) {
+                        project_space = feature.Project.Name;
+                    }
                 }
             });
             

@@ -3,11 +3,11 @@
 <head>
     <title>Project Status</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Wed Nov 11 2015 13:24:04 GMT-0800 (PST) -->
+    <!--  Build Date: Wed Dec 02 2015 13:52:54 GMT-0800 (PST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Wed Nov 11 2015 13:24:04 GMT-0800 (PST)";
-        var CHECKSUM = 54873886970;
+        var APP_BUILD_DATE = "Wed Dec 02 2015 13:52:54 GMT-0800 (PST)";
+        var CHECKSUM = 55154119533;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -595,6 +595,11 @@ Ext.define("TSProjectStatus", {
                 }
                 if ( story.get('epms_source') == 'project' && story.get('Project') ) {
                     project_space = story.get('Project').Name;
+                } else {
+                    var feature = story.get('Feature');
+                    if ( feature ) {
+                        project_space = feature.Project.Name;
+                    }
                 }
             });
             
