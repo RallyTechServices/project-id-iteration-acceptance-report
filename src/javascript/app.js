@@ -344,6 +344,8 @@ Ext.define("TSProjectStatus", {
     _getEPMSIdFromStory: function(story) {
         var project = story.get('Project');
         
+        story.set('epms_source','none');
+        
         if ( /10\d\d\d\d/.test(project.Name) ) {
             story.set('epms_id', /(10\d\d\d\d)/.exec(project.Name)[1] );
             story.set('epms_source', 'project');
@@ -405,12 +407,18 @@ Ext.define("TSProjectStatus", {
                 if ( story.get('Workspace') ) {
                     workspace_name = story.get('Workspace').Name;
                 }
+                
+                console.log('epms_source:', story.get('epms_source'), story.get('FormattedID'), story);
+                
                 if ( story.get('epms_source') == 'project' && story.get('Project') ) {
                     project_space = story.get('Project').Name;
-                } else {
+                } else if ( story.get('epms_source') == 'feature' ) {
                     var feature = story.get('Feature');
                     if ( feature ) {
-                        project_space = feature.Project.Name;
+                        if ( feature.Parent ) {
+                            console.log('--', feature.Parent.Project.Name);
+                            project_space = feature.Parent.Project.Name;
+                        }
                     }
                 }
             });

@@ -3,11 +3,11 @@
 <head>
     <title>Project Status</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Wed Dec 02 2015 13:52:54 GMT-0800 (PST) -->
+    <!--  Build Date: Sat Dec 12 2015 08:03:51 GMT-0800 (PST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Wed Dec 02 2015 13:52:54 GMT-0800 (PST)";
-        var CHECKSUM = 55154119533;
+        var APP_BUILD_DATE = "Sat Dec 12 2015 08:03:51 GMT-0800 (PST)";
+        var CHECKSUM = 55881389959;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -532,6 +532,8 @@ Ext.define("TSProjectStatus", {
     _getEPMSIdFromStory: function(story) {
         var project = story.get('Project');
         
+        story.set('epms_source','none');
+        
         if ( /10\d\d\d\d/.test(project.Name) ) {
             story.set('epms_id', /(10\d\d\d\d)/.exec(project.Name)[1] );
             story.set('epms_source', 'project');
@@ -593,12 +595,18 @@ Ext.define("TSProjectStatus", {
                 if ( story.get('Workspace') ) {
                     workspace_name = story.get('Workspace').Name;
                 }
+                
+                console.log('epms_source:', story.get('epms_source'), story.get('FormattedID'), story);
+                
                 if ( story.get('epms_source') == 'project' && story.get('Project') ) {
                     project_space = story.get('Project').Name;
-                } else {
+                } else if ( story.get('epms_source') == 'feature' ) {
                     var feature = story.get('Feature');
                     if ( feature ) {
-                        project_space = feature.Project.Name;
+                        if ( feature.Parent ) {
+                            console.log('--', feature.Parent.Project.Name);
+                            project_space = feature.Parent.Project.Name;
+                        }
                     }
                 }
             });
