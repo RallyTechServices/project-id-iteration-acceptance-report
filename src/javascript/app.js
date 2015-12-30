@@ -123,7 +123,6 @@ Ext.define("TSProjectStatus", {
                     var feature = story.get('Feature');
                     if ( feature && feature.Parent ) {
                         if ( feature.Parent.Archived == true ) { 
-                            console.log('+++', story.get('FormattedID'));
                             return false;
                         }
                     }
@@ -202,6 +201,7 @@ Ext.define("TSProjectStatus", {
                         filters: Rally.data.wsapi.Filter.or(filters).and(archived_filters),
                         model  : model_name,
                         limit  : Infinity,
+                        sorters: [ {property:'DragAndDropRank', direction:'ASC'}],
                         fetch: ['FormattedID','Iteration','StartDate', 'EndDate',
                             'Name','ObjectID','PlanEstimate','AcceptedDate','Archived',
                             'Project','ScheduleState','Feature','Parent','Workspace'],
@@ -337,20 +337,14 @@ Ext.define("TSProjectStatus", {
     },
     
     /*
+     * If the PI has an EPMIS ID, use that, otherwise,
      * if project name contains six digit decimal starting with 10,
-     * then use the project name,
-     * otherwise, see if the PI has an EPMS ID
+     * then use the project name
      */ 
     _getEPMSIdFromStory: function(story) {
         var project = story.get('Project');
         
         story.set('epms_source','none');
-        
-        if ( /10\d\d\d\d/.test(project.Name) ) {
-            story.set('epms_id', /(10\d\d\d\d)/.exec(project.Name)[1] );
-            story.set('epms_source', 'project');
-            return story;
-        }
         
         var feature = story.get('Feature');
         if ( feature && feature.Parent ) {
@@ -361,6 +355,12 @@ Ext.define("TSProjectStatus", {
                 return story;
             }
             
+        }
+        
+        if ( /10\d\d\d\d/.test(project.Name) ) {
+            story.set('epms_id', /(10\d\d\d\d)/.exec(project.Name)[1] );
+            story.set('epms_source', 'project');
+            return story;
         }
         
         story.set('epms_id', '-- NONE --');
@@ -399,6 +399,7 @@ Ext.define("TSProjectStatus", {
             var workspace_name = "Multiple";
 
             Ext.Array.each(stories, function(story) {
+                
                 if ( story.get('Iteration') ) { 
                     iteration_name =  story.get('Iteration').Name;
                     iteration_start = Rally.util.DateTime.fromIsoString( story.get('Iteration').StartDate );
@@ -408,17 +409,12 @@ Ext.define("TSProjectStatus", {
                     workspace_name = story.get('Workspace').Name;
                 }
                 
-                console.log('epms_source:', story.get('epms_source'), story.get('FormattedID'), story);
-                
                 if ( story.get('epms_source') == 'project' && story.get('Project') ) {
                     project_space = story.get('Project').Name;
                 } else if ( story.get('epms_source') == 'feature' ) {
                     var feature = story.get('Feature');
                     if ( feature ) {
-                        if ( feature.Parent ) {
-                            console.log('--', feature.Parent.Project.Name);
-                            project_space = feature.Parent.Project.Name;
-                        }
+                        project_space = feature.Project.Name;
                     }
                 }
             });
