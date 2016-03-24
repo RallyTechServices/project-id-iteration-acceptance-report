@@ -204,7 +204,7 @@ Ext.define("TSProjectStatus", {
                         sorters: [ {property:'DragAndDropRank', direction:'ASC'}],
                         fetch: ['FormattedID','Iteration','StartDate', 'EndDate',
                             'Name','ObjectID','PlanEstimate','AcceptedDate','Archived',
-                            'Project','ScheduleState','Feature','Parent','Workspace'],
+                            'Project','ScheduleState','Feature','Parent','Workspace', 'c_EPMSid'],
                         context: { 
                             project: null,
                             workspace: '/workspace/' + workspace_oid
@@ -264,7 +264,8 @@ Ext.define("TSProjectStatus", {
         
         var store_config = {
             model:'HierarchicalRequirement',
-            fetch: ['FormattedID', 'Iteration','EndDate','StartDate','Name','ObjectID','PlanEstimate','Project','AcceptedDate','ScheduleState','Feature','Parent'],
+            fetch: ['FormattedID', 'Iteration','EndDate','StartDate','Name','ObjectID','PlanEstimate',
+                'Project','AcceptedDate','ScheduleState','Feature','Parent','c_EPMSid'],
             context: { project: null },
             filters: [
                 { property:'Iteration.EndDate', operator: '<', value: today_iso },
@@ -347,14 +348,19 @@ Ext.define("TSProjectStatus", {
         story.set('epms_source','none');
         
         var feature = story.get('Feature');
-        if ( feature && feature.Parent ) {
+        console.log('feature:', feature);
+        if ( feature && feature.c_EPMSid) {
             
-            if ( /10\d\d\d\d/.test(feature.Parent.Name) ) {
-                story.set('epms_id', /(10\d\d\d\d)/.exec(feature.Parent.Name)[1] );
-                story.set('epms_source', 'feature');
-                return story;
-            }
+            story.set('epms_id', feature.c_EPMSid);
+            story.set('epms_source', 'epms project');
             
+//            if ( /10\d\d\d\d/.test(feature.Parent.Name) ) {
+//                story.set('epms_id', /(10\d\d\d\d)/.exec(feature.Parent.Name)[1] );
+//                story.set('epms_source', 'feature');
+//                return story;
+//            }
+            return story;
+//            
         }
         
         if ( /10\d\d\d\d/.test(project.Name) ) {

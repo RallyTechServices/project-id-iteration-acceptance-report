@@ -3,10 +3,10 @@
 <head>
     <title>Project Status</title>
     <!--  (c) 2015 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Wed Dec 30 2015 09:28:44 GMT-0800 (PST) -->
+    <!--  Build Date: Wed Mar 23 2016 19:15:12 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Wed Dec 30 2015 09:28:44 GMT-0800 (PST)";
+        var APP_BUILD_DATE = "Wed Mar 23 2016 19:15:12 GMT-0700 (PDT)";
         var CHECKSUM = [%= checksum %];
     </script>
     
