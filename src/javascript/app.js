@@ -348,10 +348,10 @@ Ext.define("TSProjectStatus", {
         story.set('epms_source','none');
         
         var feature = story.get('Feature');
-        console.log('feature:', feature);
-        if ( feature && feature.c_EPMSid) {
+
+        if ( feature && feature.Parent && feature.Parent.c_EPMSid) {
             
-            story.set('epms_id', feature.c_EPMSid);
+            story.set('epms_id', feature.Parent.c_EPMSid);
             story.set('epms_source', 'epms project');
             
 //            if ( /10\d\d\d\d/.test(feature.Parent.Name) ) {
