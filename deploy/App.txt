@@ -3,11 +3,11 @@
 <head>
     <title>Project Status</title>
     <!--  (c) 2015,2016 CA Technologies.  All Rights Reserved. -->
-    <!--  Build Date: Fri Apr 01 2016 17:01:33 GMT-0700 (PDT) -->
+    <!--  Build Date: Fri Apr 01 2016 19:20:05 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Fri Apr 01 2016 17:01:33 GMT-0700 (PDT)";
-        var CHECKSUM = 55949805009;
+        var APP_BUILD_DATE = "Fri Apr 01 2016 19:20:05 GMT-0700 (PDT)";
+        var CHECKSUM = 70344091866;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -880,53 +880,259 @@ Ext.define("TSProjectStatus", {
         this._getWorkspaces().then({
             scope: this,
             success: function(workspaces) {
-                var promises = Ext.Array.map(workspaces, function(workspace) {
-                    return function() { 
-                        return me._getData( workspace.get('Name'), workspace.get('ObjectID') ) 
-                    };
-                });
                 
-                Deft.Chain.sequence(promises).then({
-                    scope: this,
-                    success: function(array_of_rows_by_epmsid) {
-                        var consolidated_rows_by_epmsid = {};
-                        // we got an array of hashes because epms id might have been
-                        // valid in more than one WS (or at least 'NONE' is)
-                        Ext.Array.each(array_of_rows_by_epmsid, function(row_hash) {
-                            Ext.Object.each( row_hash, function(epmsid, row) {
-                                if ( Ext.isEmpty(consolidated_rows_by_epmsid[epmsid])) {
-                                    consolidated_rows_by_epmsid[epmsid] = row;
-                                } else {
-                                    var old_total = consolidated_rows_by_epmsid[epmsid].total;
-                                    var adding_total = row.total;
-                                    consolidated_rows_by_epmsid[epmsid].total = old_total + adding_total;
-                                    
-                                    var old_accepted = consolidated_rows_by_epmsid[epmsid].accepted_total;
-                                    var adding_accepted= row.accepted_total;
-                                    consolidated_rows_by_epmsid[epmsid].accepted_total = old_accepted + adding_accepted;
-
-                                    consolidated_rows_by_epmsid[epmsid].accepted_percent = consolidated_rows_by_epmsid[epmsid].accepted_total / consolidated_rows_by_epmsid[epmsid].total;
-                                    
-                                    consolidated_rows_by_epmsid[epmsid].stories = Ext.Array.push( consolidated_rows_by_epmsid[epmsid].stories, row.stories);
-                                }
-                            });
-                            
+                Deft.Chain.sequence([
+                    function() { return me._getDataFromIterations(workspaces); },
+                    function() { return me._getAllEPMSIds(workspaces); }
+                ]).then({
+                    scope  : this,
+                    success: function(results) {
+                        var rows = Ext.Array.flatten(results[0]);
+                        var epmsIDs = results[1];
+                        
+                        this.logger.log("IDs", epmsIDs);
+                        this.logger.log('rows', rows);
+                        
+                        var unused = this._getUnusedEPMS(rows,epmsIDs);
+                        console.log('unused:', unused);
+                        
+                        var unused_rows = Ext.Array.map(unused, function(item) {
+                            return {
+                                id: item,
+                                total: 'N/A',
+                                accepted_total: 'N/A',
+                                accepted_percent: '',
+                                stories: [],
+                                iteration_name: 'No Iteration',
+                                iteration_start: '',
+                                iteration_end: '',
+                                workspace: 'N/A',
+                                project_space: 'N/A'
+                            };
                         });
                         
-                        var rows = Ext.Object.getValues(consolidated_rows_by_epmsid);
-                        this._displayGrid(Ext.Array.flatten(rows));
+                        this.setLoading(false);
+                        this._displayGrid(Ext.Array.merge(rows,unused_rows));
                         this._addSelectors(this.down('#selector_box'));
                     },
                     failure: function(msg) {
-                        Ext.Msg.alert('Problem gathering data', msg);
+                        this.setLoading(false);
+                        Ext.Msg.alert('Problem loading data', msg);
                     }
                 });
+                
             },
             failure: function(msg) {
+                this.setLoading(false);
                 Ext.Msg.alert('Problem loading workspaces', msg);
             }
         });
+    },
+    
+    _getUnusedEPMS: function(rows, epms_ids){
+        var used_ids = Ext.Array.map(rows, function(row){return row.id});
+        
+        return Ext.Array.difference(epms_ids,used_ids);
+    },
+    
+    _getAllEPMSIds: function(workspaces) {
+        var me = this,
+            deferred = Ext.create('Deft.Deferred');
+        
+        var promises = Ext.Array.map(workspaces, function(workspace) {
+            return function() { 
+                return me._getEPMSIdsForWorkspace( workspace.get('Name'), workspace.get('ObjectID') ) 
+            };
+        });
+        
+        Deft.Chain.sequence(promises,this).then({
+            success: function(results) {
+                deferred.resolve(Ext.Array.unique(Ext.Array.flatten(results) ));
+            },
+            failure: function(msg) {
+                deferred.reject(msg);
+            }
+        });
+        
+        return deferred.promise;
+    },
+    
+    _getEPMSIdsForWorkspace: function(workspace_name, workspace_oid) {
+        var me = this,
+            deferred = Ext.create('Deft.Deferred');
+            
+        this.setLoading('Loading unused IDs from ' + workspace_name);
+        
+        // EPMSID either from project or from EPMS item
+        Deft.Chain.parallel([
+            function() { return me._getPossibleEPMSProjects(workspace_oid); },
+            function() { return me._getPossibleEPMSPIs(workspace_oid); }
+        ]).then({
+            success: function(results) {
+                deferred.resolve(Ext.Array.flatten(results));
+            },
+            failure: function(msg) {
+                deferred.reject(msg);
+            }
+        });
+        
+        return deferred.promise;
+    },
+    
+    _getPortfolioItemTypes: function(workspace_oid) {
+        var config = {
+            model: 'TypeDefinition', 
+            fetch: ["TypePath","Ordinal"],
+            filters: [{property:'TypePath', operator:'contains', value:'PortfolioItem/'}],
+            sorters: [{property:'Ordinal',direction:'ASC'}],
+            context: { 
+                project: null,
+                workspace: '/workspace/' + workspace_oid
+            }
+        };
+        
+        return this._loadRecordsWithAPromise(config);
+    },
+    
+    _getPossibleEPMSPIs: function(workspace_oid) {
+        var me = this,
+            deferred = Ext.create('Deft.Deferred');
+            
+        var filters = [
+            {property:'c_EPMSid',operator:'!=', value: "" },
+            {property:'c_EPMSID', operator: '!=', value: "" },
+            {property:'Project.Name',operator:'!contains', value:'Archive'},
+            {property:'Project.Parent.Name',operator:'!contains', value:'Archive'}
+        ];
+        
+        var config = {
+            model: 'PortfolioItem/EPMSProject',
+            filters: filters,
+            limit  : Infinity,
+            fetch: ['ObjectID','c_EPMSid'],
+            context: { 
+                project: null,
+                workspace: '/workspace/' + workspace_oid
+            }
+        }
+        
+        this._getPortfolioItemTypes(workspace_oid).then({
+            scope: this,
+            success: function(pis) {
+                var paths = Ext.Array.map(pis, function(pi) { return pi.get('TypePath'); });
+             
+                if ( !Ext.Array.contains(paths, 'PortfolioItem/EPMSProject') ) {
+                    deferred.resolve([]);
+                    return;
+                }
+                
+                this._loadRecordsWithAPromise(config).then({
+                    success: function(results) {
+                        var ids = Ext.Array.map(results, function(result) {
+                            return result.get('c_EPMSid') || result.get('c_EPMSID');
+                        });
+                        deferred.resolve(ids);
+                    },
+                    failure: function(msg) {
+                        deferred.reject(msg);
+                    }
+                });
+                
+            },
+            failure: function(msg) {
+                deferred.reject(msg);
+            }
+        });
+        
+        return deferred.promise;
+    },
+    
+    _getPossibleEPMSProjects: function(workspace_oid) {
+        var me = this,
+            deferred = Ext.create('Deft.Deferred');
+            
+        var project_filters = [
+            {property:'Name',operator:'contains', value: '10' },
+            {property:'Name',operator:'!contains', value:'Archive'},
+            {property:'Parent.Name',operator:'!contains', value:'Archive'}
+        ];
+        
+        var config = {
+            model: 'Project',
+            filters: project_filters,
+            limit  : Infinity,
+            fetch: ['Name','ObjectID'],
+            context: { 
+                project: null,
+                workspace: '/workspace/' + workspace_oid
+            }
+        }
+        
+        this._loadRecordsWithAPromise(config).then({
+            success: function(results) {
+                var names = [];
+                Ext.Array.each(results, function(project) {
+                    var project_name = project.get('Name');
+                    if ( /10\d\d\d\d/.test(project_name) ) {
+                        names.push( /(10\d\d\d\d)/.exec(project_name)[1] );
+                    }
+                });
+                
+                deferred.resolve(names);
+            },
+            failure: function(msg) {
+                deferred.reject(msg);
+            }
+        });
+        return deferred.promise;
+    },
+    
+    _getDataFromIterations: function(workspaces) {
+        var me = this,
+            deferred = Ext.create('Deft.Deferred');
 
+        var promises = Ext.Array.map(workspaces, function(workspace) {
+            return function() { 
+                return me._getDataFromIterationsInWorkspace( workspace.get('Name'), workspace.get('ObjectID') ) 
+            };
+        });
+        
+        Deft.Chain.sequence(promises).then({
+            scope: this,
+            success: function(array_of_rows_by_epmsid) {
+                var consolidated_rows_by_epmsid = {};
+                // we got an array of hashes because epms id might have been
+                // valid in more than one WS (or at least 'NONE' is)
+                Ext.Array.each(array_of_rows_by_epmsid, function(row_hash) {
+                    Ext.Object.each( row_hash, function(epmsid, row) {
+                        if ( Ext.isEmpty(consolidated_rows_by_epmsid[epmsid])) {
+                            consolidated_rows_by_epmsid[epmsid] = row;
+                        } else {
+                            var old_total = consolidated_rows_by_epmsid[epmsid].total;
+                            var adding_total = row.total;
+                            consolidated_rows_by_epmsid[epmsid].total = old_total + adding_total;
+                            
+                            var old_accepted = consolidated_rows_by_epmsid[epmsid].accepted_total;
+                            var adding_accepted= row.accepted_total;
+                            consolidated_rows_by_epmsid[epmsid].accepted_total = old_accepted + adding_accepted;
+
+                            consolidated_rows_by_epmsid[epmsid].accepted_percent = consolidated_rows_by_epmsid[epmsid].accepted_total / consolidated_rows_by_epmsid[epmsid].total;
+                            
+                            consolidated_rows_by_epmsid[epmsid].stories = Ext.Array.push( consolidated_rows_by_epmsid[epmsid].stories, row.stories);
+                        }
+                    });
+                    
+                });
+                
+                var rows = Ext.Object.getValues(consolidated_rows_by_epmsid);
+                deferred.resolve(rows);
+            },
+            failure: function(msg) {
+                deferred.reject(msg);
+            }
+        });
+        
+        return deferred.promise;
     },
     
     _getWorkspaces: function() {
@@ -963,7 +1169,7 @@ Ext.define("TSProjectStatus", {
         return deferred.promise;
     },
     
-    _getData: function(workspace_name, workspace_oid) {
+    _getDataFromIterationsInWorkspace: function(workspace_name, workspace_oid) {
         var deferred = Ext.create('Deft.Deferred');
         
         this.setLoading('Loading Workspace ' + workspace_name);
@@ -986,7 +1192,6 @@ Ext.define("TSProjectStatus", {
                 });
                 
                 var stories_by_epmsid = this._organizeStoriesByEPMS(non_archived_stories);
-                this.logger.log('stories_by_epmsid', stories_by_epmsid);
                 
                 var rows = this._makeEPMSRow(stories_by_epmsid);
                 
@@ -1060,7 +1265,7 @@ Ext.define("TSProjectStatus", {
                         sorters: [ {property:'DragAndDropRank', direction:'ASC'}],
                         fetch: ['FormattedID','Iteration','StartDate', 'EndDate',
                             'Name','ObjectID','PlanEstimate','AcceptedDate','Archived',
-                            'Project','ScheduleState','Feature','Parent','Workspace', 'c_EPMSid'],
+                            'Project','ScheduleState','Feature','Parent','Workspace', 'c_EPMSid','c_EPMSID'],
                         context: { 
                             project: null,
                             workspace: '/workspace/' + workspace_oid
@@ -1121,7 +1326,7 @@ Ext.define("TSProjectStatus", {
         var store_config = {
             model:'HierarchicalRequirement',
             fetch: ['FormattedID', 'Iteration','EndDate','StartDate','Name','ObjectID','PlanEstimate',
-                'Project','AcceptedDate','ScheduleState','Feature','Parent','c_EPMSid'],
+                'Project','AcceptedDate','ScheduleState','Feature','Parent','c_EPMSid','c_EPMSID'],
             context: { project: null },
             filters: [
                 { property:'Iteration.EndDate', operator: '<', value: today_iso },
@@ -1205,17 +1410,19 @@ Ext.define("TSProjectStatus", {
         
         var feature = story.get('Feature');
 
-        if ( feature && feature.Parent && feature.Parent.c_EPMSid) {
+        if ( feature && feature.Parent && feature.Parent) {
             
-            story.set('epms_id', feature.Parent.c_EPMSid);
-            story.set('epms_source', 'epms project');
+            if ( feature.Parent.c_EPMSid ) {
+                story.set('epms_id', feature.Parent.c_EPMSid);
+                story.set('epms_source', 'epms project');
+                return story;
+            } 
             
-//            if ( /10\d\d\d\d/.test(feature.Parent.Name) ) {
-//                story.set('epms_id', /(10\d\d\d\d)/.exec(feature.Parent.Name)[1] );
-//                story.set('epms_source', 'feature');
-//                return story;
-//            }
-            return story;
+            if ( feature.Parent.c_EPMSID ) {
+                story.set('epms_id', feature.Parent.c_EPMSID);
+                story.set('epms_source', 'epms project');
+                return story;
+            }
 //            
         }
         
@@ -1329,7 +1536,7 @@ Ext.define("TSProjectStatus", {
                 { dataIndex: 'total', text: 'Total (Plan&nbsp;Estimate)' },
                 { dataIndex: 'accepted_total', text: 'Accepted (Plan&nbsp;Estimate)' },
                 { dataIndex: 'accepted_percent', text: 'Accepted Percentage', renderer: function(v) {
-                    if ( v < 0 ) {
+                    if ( v < 0 || Ext.isEmpty(v) ) {
                         return "N/A";
                     }
                     return Ext.util.Format.number(v*100,'0.0') + '%';
