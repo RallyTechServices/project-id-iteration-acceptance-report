@@ -586,7 +586,8 @@ Ext.define("TSProjectStatus", {
         this.logger.log("Starting load:",store_config);
         
         var default_config = {
-            autoLoad: false
+            autoLoad: false,
+            compact: false
         };
         
         Ext.create('Rally.data.wsapi.Store', Ext.apply({},store_config)).load({
