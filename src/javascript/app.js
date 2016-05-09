@@ -438,6 +438,7 @@ Ext.define("TSProjectStatus", {
     },
     
     _replaceIterationsWithoutStories: function(iterations, stories){
+        var me = this;
         this.logger.log('_replaceIterationsWithoutStories', iterations, stories);
         var iterations_that_have_stories = Ext.Array.map(stories, function(story){
             return story.get('Iteration').ObjectID;
@@ -453,7 +454,9 @@ Ext.define("TSProjectStatus", {
                     Project: iteration.get('Project'),
                     Workspace: iteration.get('Workspace')
                 });
-//                
+//              
+                me.logger.log("Iteration without items", iteration.get("Project"), iteration.get('Name'));
+                
                 placeholder_stories.push(fake_story);
             }
         });
@@ -587,7 +590,8 @@ Ext.define("TSProjectStatus", {
         
         var default_config = {
             autoLoad: false,
-            compact: false
+            compact: false,
+            limit  : Infinity
         };
         
         Ext.create('Rally.data.wsapi.Store', Ext.apply({},store_config)).load({
