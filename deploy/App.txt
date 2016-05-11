@@ -3,11 +3,11 @@
 <head>
     <title>Project Status</title>
     <!--  (c) 2015,2016 CA Technologies.  All Rights Reserved. -->
-    <!--  Build Date: Sun May 08 2016 18:07:01 GMT-0700 (PDT) -->
+    <!--  Build Date: Wed May 11 2016 10:51:56 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Sun May 08 2016 18:07:01 GMT-0700 (PDT)";
-        var CHECKSUM = 47061941745;
+        var APP_BUILD_DATE = "Wed May 11 2016 10:51:56 GMT-0700 (PDT)";
+        var CHECKSUM = 48936259646;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -610,27 +610,11 @@ Ext.define("TSProjectStatus", {
                     success: function(results) {
                         var rows = Ext.Array.flatten(results[0]);
                         var epmsIDs = results[1];
+//                        
+//                        this.logger.log("IDs", epmsIDs);
+//                        this.logger.log('rows', rows);
                         
-                        this.logger.log("IDs", epmsIDs);
-                        this.logger.log('rows', rows);
-                        
-                        var unused = this._getUnusedEPMS(rows,epmsIDs);
-                        console.log('unused:', unused);
-                        
-                        var unused_rows = Ext.Array.map(unused, function(item) {
-                            return {
-                                id: item,
-                                total: 'N/A',
-                                accepted_total: 'N/A',
-                                accepted_percent: '',
-                                stories: [],
-                                iteration_name: 'No Iteration',
-                                iteration_start: '',
-                                iteration_end: '',
-                                workspace: 'N/A',
-                                project_space: 'N/A'
-                            };
-                        });
+                        var unused_rows = this._getUnusedEPMS(rows,epmsIDs);
                         
                         this.setLoading(false);
                         this._displayGrid(Ext.Array.merge(rows,unused_rows));
@@ -650,10 +634,15 @@ Ext.define("TSProjectStatus", {
         });
     },
     
-    _getUnusedEPMS: function(rows, epms_ids){
+    _getUnusedEPMS: function(rows, epms_ids){        
         var used_ids = Ext.Array.map(rows, function(row){return row.id});
+        var all_ids = Ext.Array.map(epms_ids, function(item){ return item.id; });
         
-        return Ext.Array.difference(epms_ids,used_ids);
+        var unused_ids = Ext.Array.difference(all_ids,used_ids);
+        
+        return Ext.Array.filter(epms_ids, function(item) {
+            return Ext.Array.contains(unused_ids, item.id);
+        });
     },
     
     _getAllEPMSIds: function(workspaces) {
@@ -686,8 +675,8 @@ Ext.define("TSProjectStatus", {
         
         // EPMSID either from project or from EPMS item
         Deft.Chain.parallel([
-            function() { return me._getPossibleEPMSProjects(workspace_oid); },
-            function() { return me._getPossibleEPMSPIs(workspace_oid); }
+            function() { return me._getPossibleEPMSProjects(workspace_oid,workspace_name); },
+            function() { return me._getPossibleEPMSPIs(workspace_oid,workspace_name); }
         ]).then({
             success: function(results) {
                 deferred.resolve(Ext.Array.flatten(results));
@@ -715,7 +704,7 @@ Ext.define("TSProjectStatus", {
         return this._loadRecordsWithAPromise(config);
     },
     
-    _getPossibleEPMSPIs: function(workspace_oid) {
+    _getPossibleEPMSPIs: function(workspace_oid,workspace_name) {
         var me = this,
             deferred = Ext.create('Deft.Deferred');
             
@@ -730,7 +719,7 @@ Ext.define("TSProjectStatus", {
             model: 'PortfolioItem/EPMSProject',
             filters: filters,
             limit  : Infinity,
-            fetch: ['ObjectID','c_EPMSid'],
+            fetch: ['ObjectID','c_EPMSid','Project'],
             context: { 
                 project: null,
                 workspace: '/workspace/' + workspace_oid
@@ -749,10 +738,22 @@ Ext.define("TSProjectStatus", {
                 
                 this._loadRecordsWithAPromise(config).then({
                     success: function(results) {
-                        var ids = Ext.Array.map(results, function(result) {
-                            return result.get('c_EPMSid') || result.get('c_EPMSID');
+                        var items = Ext.Array.map(results, function(result) {
+                            var item = {
+                                id: result.get('c_EPMSid') || result.get('c_EPMSID'),
+                                total: 'N/A',
+                                accepted_total: 'N/A',
+                                stories: [],
+                                iteration_name: 'No Iteration',
+                                iteration_start: '',
+                                iteration_end: '',
+                                workspace: workspace_name,
+                                project_space: result.get('Project')._refObjectName
+                            };
+                            
+                            return item ;
                         });
-                        deferred.resolve(ids);
+                        deferred.resolve(items);
                     },
                     failure: function(msg) {
                         deferred.reject(msg);
@@ -768,7 +769,7 @@ Ext.define("TSProjectStatus", {
         return deferred.promise;
     },
     
-    _getPossibleEPMSProjects: function(workspace_oid) {
+    _getPossibleEPMSProjects: function(workspace_oid,workspace_name) {
         var me = this,
             deferred = Ext.create('Deft.Deferred');
             
@@ -791,15 +792,26 @@ Ext.define("TSProjectStatus", {
         
         this._loadRecordsWithAPromise(config).then({
             success: function(results) {
-                var names = [];
+                var items = [];
                 Ext.Array.each(results, function(project) {
                     var project_name = project.get('Name');
                     if ( /10\d\d\d\d/.test(project_name) ) {
-                        names.push( /(10\d\d\d\d)/.exec(project_name)[1] );
+                        var item = {
+                            id: /(10\d\d\d\d)/.exec(project_name)[1],
+                            total: 'N/A',
+                            accepted_total: 'N/A',
+                            stories: [],
+                            iteration_name: 'No Iteration',
+                            iteration_start: '',
+                            iteration_end: '',
+                            workspace: workspace_name,
+                            project_space: project_name
+                        };
+                        items.push(item);
                     }
                 });
-                
-                deferred.resolve(names);
+                                
+                deferred.resolve(items);
             },
             failure: function(msg) {
                 deferred.reject(msg);
@@ -1307,6 +1319,16 @@ Ext.define("TSProjectStatus", {
     },
     
     _displayPopupForStories: function(title,stories) {
+        if ( !stories || stories.length === 0 ) {
+            return;
+        }
+        
+        if ( stories.length == 1  && stories[0].get('ObjectID') == -1 ) {
+            return;
+        }
+        
+        console.log(title, stories);
+        
         Ext.create('Rally.ui.dialog.Dialog', {
             id       : 'popup',
             width    : Ext.getBody().getWidth() - 20,
@@ -1330,6 +1352,9 @@ Ext.define("TSProjectStatus", {
                         if ( Ext.isEmpty(v)  ) {
                             return '--';
                         }
+                        if ( Ext.isFunction(v.getData) ) { v = v.getData(); }
+                        if ( Ext.isDate(v.EndDate) ) { v.EndDate = Rally.util.DateTime.toIsoString(v.EndDate); }
+                        
                         return Ext.String.format("{0} (ended: {1})",  v.Name, v.EndDate.replace(/T.*$/,""));
                     }},
                     {dataIndex:'Project', text: 'Project', width: 200, renderer: function(v) {
