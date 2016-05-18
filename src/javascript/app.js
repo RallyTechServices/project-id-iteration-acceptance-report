@@ -644,11 +644,11 @@ Ext.define("TSProjectStatus", {
                 }
                 
                 if ( story.get('epms_source') == 'project' && story.get('Project') ) {
-                    project_space = story.get('Project').Name;
-                } else if ( story.get('epms_source') == 'feature' ) {
+                    project_space = story.get('Project')._refObjectName;
+                } else if ( story.get('epms_source') == 'epms project' ) {
                     var feature = story.get('Feature');
                     if ( feature ) {
-                        project_space = feature.Project.Name;
+                        project_space = feature.Project._refObjectName;
                     }
                 }
             });
@@ -708,28 +708,29 @@ Ext.define("TSProjectStatus", {
                 }},
                 { dataIndex: 'iteration_name', text: 'Iteration', renderer: function(v, meta, record) {
                     if ( Ext.isEmpty(v) ) { return "--"; }
-                    if ( record.get('id') == "-- NONE -- " ) {
+                    if ( record.get('id') == "-- NONE --" ) {
                         return "N/A";
                     }
                     return v;
                 } },
                 { dataIndex: 'iteration_start', text: 'Start' , renderer: function(v, meta, record) {
                     if ( Ext.isEmpty(v) ) { return "--"; }
-                    if ( record.get('id') == "-- NONE -- " ) {
+                    if ( record.get('id') == "-- NONE --" ) {
                         return "N/A";
                     }
                     return Ext.util.Format.date(v,"m/d/Y");
                 }},
                 { dataIndex: 'iteration_end', text: 'End' , renderer: function(v, meta, record) {
                     if ( Ext.isEmpty(v) ) { return "--"; }
-                    if ( record.get('id') == "-- NONE -- " ) {
+                    if ( record.get('id') == "-- NONE --" ) {
                         return "N/A";
                     }
                     return Ext.util.Format.date(v,"m/d/Y");
                 }},
                 { dataIndex: 'project_space', text: 'Project' },
                 { dataIndex: 'workspace', text: 'Workspace', renderer: function(value, meta, record) {
-                    if ( record.get('id') == "-- NONE -- " ) {
+                    console.log(record.get('id'), record);
+                    if ( record.get('id') == "-- NONE --" ) {
                         return "N/A";
                     }
                     
@@ -760,9 +761,7 @@ Ext.define("TSProjectStatus", {
         if ( stories.length == 1  && stories[0].get('ObjectID') == -1 ) {
             return;
         }
-        
-        console.log(title, filtered_stories);
-        
+                
         Ext.create('Rally.ui.dialog.Dialog', {
             id       : 'popup',
             width    : Ext.getBody().getWidth() - 20,
