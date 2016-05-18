@@ -344,6 +344,10 @@ Ext.define("TSProjectStatus", {
                             return false;
                         }
                     }
+                    
+                    if ( story.get('Project')._refObjectName && /Archive/.test(story.get('Project')._refObjectName)) {
+                        return false;
+                    }
                     return true;
                 });
                 
@@ -742,7 +746,14 @@ Ext.define("TSProjectStatus", {
     },
     
     _displayPopupForStories: function(title,stories) {
-        if ( !stories || stories.length === 0 ) {
+        var filtered_stories = Ext.Array.filter(stories, function(story) {
+            if ( Ext.isEmpty(story.get('Name')) ) {
+                return false;
+            }
+            return true;
+        });
+        
+        if ( !stories || filtered_stories.length === 0 ) {
             return;
         }
         
@@ -750,7 +761,7 @@ Ext.define("TSProjectStatus", {
             return;
         }
         
-        console.log(title, stories);
+        console.log(title, filtered_stories);
         
         Ext.create('Rally.ui.dialog.Dialog', {
             id       : 'popup',
@@ -788,7 +799,7 @@ Ext.define("TSProjectStatus", {
                     }}
                 ],
                 store                : Ext.create('Rally.data.custom.Store', {
-                    data     : stories,
+                    data     : filtered_stories,
                     pageSize : 10000
                 })
             }]

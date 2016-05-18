@@ -3,11 +3,11 @@
 <head>
     <title>Project Status</title>
     <!--  (c) 2015,2016 CA Technologies.  All Rights Reserved. -->
-    <!--  Build Date: Wed May 11 2016 10:51:56 GMT-0700 (PDT) -->
+    <!--  Build Date: Tue May 17 2016 17:15:50 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Wed May 11 2016 10:51:56 GMT-0700 (PDT)";
-        var CHECKSUM = 48936259646;
+        var APP_BUILD_DATE = "Tue May 17 2016 17:15:50 GMT-0700 (PDT)";
+        var CHECKSUM = 49727423843;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -921,6 +921,10 @@ Ext.define("TSProjectStatus", {
                             return false;
                         }
                     }
+                    
+                    if ( story.get('Project')._refObjectName && /Archive/.test(story.get('Project')._refObjectName)) {
+                        return false;
+                    }
                     return true;
                 });
                 
@@ -1319,7 +1323,14 @@ Ext.define("TSProjectStatus", {
     },
     
     _displayPopupForStories: function(title,stories) {
-        if ( !stories || stories.length === 0 ) {
+        var filtered_stories = Ext.Array.filter(stories, function(story) {
+            if ( Ext.isEmpty(story.get('Name')) ) {
+                return false;
+            }
+            return true;
+        });
+        
+        if ( !stories || filtered_stories.length === 0 ) {
             return;
         }
         
@@ -1327,7 +1338,7 @@ Ext.define("TSProjectStatus", {
             return;
         }
         
-        console.log(title, stories);
+        console.log(title, filtered_stories);
         
         Ext.create('Rally.ui.dialog.Dialog', {
             id       : 'popup',
@@ -1365,7 +1376,7 @@ Ext.define("TSProjectStatus", {
                     }}
                 ],
                 store                : Ext.create('Rally.data.custom.Store', {
-                    data     : stories,
+                    data     : filtered_stories,
                     pageSize : 10000
                 })
             }]
