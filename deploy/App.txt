@@ -3,11 +3,11 @@
 <head>
     <title>Project Status</title>
     <!--  (c) 2015,2016 CA Technologies.  All Rights Reserved. -->
-    <!--  Build Date: Tue May 17 2016 17:31:52 GMT-0700 (PDT) -->
+    <!--  Build Date: Thu May 26 2016 16:58:19 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Tue May 17 2016 17:31:52 GMT-0700 (PDT)";
-        var CHECKSUM = 49798525592;
+        var APP_BUILD_DATE = "Thu May 26 2016 16:58:19 GMT-0700 (PDT)";
+        var CHECKSUM = 49893613026;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -711,6 +711,7 @@ Ext.define("TSProjectStatus", {
         var filters = [
             {property:'c_EPMSid',operator:'!=', value: "" },
             {property:'c_EPMSID', operator: '!=', value: "" },
+            {property:'Archived', operator: '!=', value: true },
             {property:'Project.Name',operator:'!contains', value:'Archive'},
             {property:'Project.Parent.Name',operator:'!contains', value:'Archive'}
         ];
@@ -1150,7 +1151,7 @@ Ext.define("TSProjectStatus", {
         
         var feature = story.get('Feature');
 
-        if ( feature && feature.Parent && feature.Parent) {
+        if ( feature && feature.Parent ) {
             
             if ( feature.Parent.c_EPMSid ) {
                 story.set('epms_id', feature.Parent.c_EPMSid);

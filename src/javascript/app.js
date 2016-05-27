@@ -134,6 +134,7 @@ Ext.define("TSProjectStatus", {
         var filters = [
             {property:'c_EPMSid',operator:'!=', value: "" },
             {property:'c_EPMSID', operator: '!=', value: "" },
+            {property:'Archived', operator: '!=', value: true },
             {property:'Project.Name',operator:'!contains', value:'Archive'},
             {property:'Project.Parent.Name',operator:'!contains', value:'Archive'}
         ];
@@ -573,7 +574,7 @@ Ext.define("TSProjectStatus", {
         
         var feature = story.get('Feature');
 
-        if ( feature && feature.Parent && feature.Parent) {
+        if ( feature && feature.Parent ) {
             
             if ( feature.Parent.c_EPMSid ) {
                 story.set('epms_id', feature.Parent.c_EPMSid);
