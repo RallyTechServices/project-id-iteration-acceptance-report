@@ -3,11 +3,11 @@
 <head>
     <title>Project Status</title>
     <!--  (c) 2015,2016 CA Technologies.  All Rights Reserved. -->
-    <!--  Build Date: Thu May 26 2016 16:58:19 GMT-0700 (PDT) -->
+    <!--  Build Date: Mon Jun 13 2016 15:29:09 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Thu May 26 2016 16:58:19 GMT-0700 (PDT)";
-        var CHECKSUM = 49893613026;
+        var APP_BUILD_DATE = "Mon Jun 13 2016 15:29:09 GMT-0700 (PDT)";
+        var CHECKSUM = 50176557240;
     </script>
     
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
@@ -1264,6 +1264,13 @@ Ext.define("TSProjectStatus", {
     },
     
     _displayGrid: function(rows){
+        
+        var none_id = "-- NONE --";
+        
+        rows = Ext.Array.filter(rows, function(row){
+            return ( row.id != none_id );
+        });
+        
         var store = Ext.create('Rally.data.custom.Store',{ 
             data: rows,
             pageSize: 5000
@@ -1286,21 +1293,21 @@ Ext.define("TSProjectStatus", {
                 }},
                 { dataIndex: 'iteration_name', text: 'Iteration', renderer: function(v, meta, record) {
                     if ( Ext.isEmpty(v) ) { return "--"; }
-                    if ( record.get('id') == "-- NONE --" ) {
+                    if ( record.get('id') == none_id ) {
                         return "N/A";
                     }
                     return v;
                 } },
                 { dataIndex: 'iteration_start', text: 'Start' , renderer: function(v, meta, record) {
                     if ( Ext.isEmpty(v) ) { return "--"; }
-                    if ( record.get('id') == "-- NONE --" ) {
+                    if ( record.get('id') == none_id ) {
                         return "N/A";
                     }
                     return Ext.util.Format.date(v,"m/d/Y");
                 }},
                 { dataIndex: 'iteration_end', text: 'End' , renderer: function(v, meta, record) {
                     if ( Ext.isEmpty(v) ) { return "--"; }
-                    if ( record.get('id') == "-- NONE --" ) {
+                    if ( record.get('id') == none_id ) {
                         return "N/A";
                     }
                     return Ext.util.Format.date(v,"m/d/Y");
@@ -1308,7 +1315,7 @@ Ext.define("TSProjectStatus", {
                 { dataIndex: 'project_space', text: 'Project' },
                 { dataIndex: 'workspace', text: 'Workspace', renderer: function(value, meta, record) {
                     console.log(record.get('id'), record);
-                    if ( record.get('id') == "-- NONE --" ) {
+                    if ( record.get('id') == none_id ) {
                         return "N/A";
                     }
                     

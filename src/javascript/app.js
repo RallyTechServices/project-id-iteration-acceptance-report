@@ -687,6 +687,13 @@ Ext.define("TSProjectStatus", {
     },
     
     _displayGrid: function(rows){
+        
+        var none_id = "-- NONE --";
+        
+        rows = Ext.Array.filter(rows, function(row){
+            return ( row.id != none_id );
+        });
+        
         var store = Ext.create('Rally.data.custom.Store',{ 
             data: rows,
             pageSize: 5000
@@ -709,21 +716,21 @@ Ext.define("TSProjectStatus", {
                 }},
                 { dataIndex: 'iteration_name', text: 'Iteration', renderer: function(v, meta, record) {
                     if ( Ext.isEmpty(v) ) { return "--"; }
-                    if ( record.get('id') == "-- NONE --" ) {
+                    if ( record.get('id') == none_id ) {
                         return "N/A";
                     }
                     return v;
                 } },
                 { dataIndex: 'iteration_start', text: 'Start' , renderer: function(v, meta, record) {
                     if ( Ext.isEmpty(v) ) { return "--"; }
-                    if ( record.get('id') == "-- NONE --" ) {
+                    if ( record.get('id') == none_id ) {
                         return "N/A";
                     }
                     return Ext.util.Format.date(v,"m/d/Y");
                 }},
                 { dataIndex: 'iteration_end', text: 'End' , renderer: function(v, meta, record) {
                     if ( Ext.isEmpty(v) ) { return "--"; }
-                    if ( record.get('id') == "-- NONE --" ) {
+                    if ( record.get('id') == none_id ) {
                         return "N/A";
                     }
                     return Ext.util.Format.date(v,"m/d/Y");
@@ -731,7 +738,7 @@ Ext.define("TSProjectStatus", {
                 { dataIndex: 'project_space', text: 'Project' },
                 { dataIndex: 'workspace', text: 'Workspace', renderer: function(value, meta, record) {
                     console.log(record.get('id'), record);
-                    if ( record.get('id') == "-- NONE --" ) {
+                    if ( record.get('id') == none_id ) {
                         return "N/A";
                     }
                     
