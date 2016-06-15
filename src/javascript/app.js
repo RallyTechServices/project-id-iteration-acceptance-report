@@ -165,8 +165,9 @@ Ext.define("TSProjectStatus", {
                         var items = Ext.Array.map(results, function(result) {
                             var item = {
                                 id: result.get('c_EPMSid') || result.get('c_EPMSID'),
-                                total: 'N/A',
-                                accepted_total: 'N/A',
+                                total: -1,
+                                accepted_total: -1,
+                                accepted_percent: -1,
                                 stories: [],
                                 iteration_name: 'No Iteration',
                                 iteration_start: '',
@@ -222,8 +223,9 @@ Ext.define("TSProjectStatus", {
                     if ( /10\d\d\d\d/.test(project_name) ) {
                         var item = {
                             id: /(10\d\d\d\d)/.exec(project_name)[1],
-                            total: 'N/A',
-                            accepted_total: 'N/A',
+                            total: -1,
+                            accepted_total: -1,
+                            accepted_percent: -1,
                             stories: [],
                             iteration_name: 'No Iteration',
                             iteration_start: '',
@@ -691,7 +693,7 @@ Ext.define("TSProjectStatus", {
         var none_id = "-- NONE --";
         
         rows = Ext.Array.filter(rows, function(row){
-            return ( row.id != none_id );
+            return ( row.id != none_id && parseInt(row.id,10) > 0 );
         });
         
         var store = Ext.create('Rally.data.custom.Store',{ 
@@ -706,8 +708,14 @@ Ext.define("TSProjectStatus", {
             showPagingToolbar: false,
             columnCfgs: [
                 { dataIndex: 'id', text: 'EPMS ID' },
-                { dataIndex: 'total', text: 'Total (Plan&nbsp;Estimate)' },
-                { dataIndex: 'accepted_total', text: 'Accepted (Plan&nbsp;Estimate)' },
+                { dataIndex: 'total', text: 'Total (Plan&nbsp;Estimate)', renderer: function(v) {
+                    if ( Ext.isEmpty(v) || v < 0 ) { return "N/A"; }
+                    return v;
+                } },
+                { dataIndex: 'accepted_total', text: 'Accepted (Plan&nbsp;Estimate)', renderer: function(v) {
+                    if ( Ext.isEmpty(v) || v < 0 ) { return "N/A"; }
+                    return v;
+                }  },
                 { dataIndex: 'accepted_percent', text: 'Accepted Percentage', renderer: function(v) {
                     if ( v < 0 || Ext.isEmpty(v) ) {
                         return "N/A";
