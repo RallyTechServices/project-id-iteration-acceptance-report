@@ -143,7 +143,7 @@ Ext.define("TSProjectStatus", {
             model: 'PortfolioItem/EPMSProject',
             filters: filters,
             limit  : Infinity,
-            fetch: ['ObjectID','c_EPMSid','Project'],
+            fetch: ['ObjectID','c_EPMSid','Project','FormattedID','Workspace'],
             context: { 
                 project: null,
                 workspace: '/workspace/' + workspace_oid
@@ -163,8 +163,12 @@ Ext.define("TSProjectStatus", {
                 this._loadRecordsWithAPromise(config).then({
                     success: function(results) {
                         var items = Ext.Array.map(results, function(result) {
+                            var id = result.get('c_EPMSid') || result.get('c_EPMSID');
+                            if ( id = "100794" ) {
+                                console.log('++', id, result.get('FormattedID'), result.get('Project')._refObjectName, result);
+                            }
                             var item = {
-                                id: result.get('c_EPMSid') || result.get('c_EPMSID'),
+                                id: id ,
                                 total: -1,
                                 accepted_total: -1,
                                 accepted_percent: -1,
@@ -221,8 +225,12 @@ Ext.define("TSProjectStatus", {
                 Ext.Array.each(results, function(project) {
                     var project_name = project.get('Name');
                     if ( /10\d\d\d\d/.test(project_name) ) {
+                        var id = /(10\d\d\d\d)/.exec(project_name)[1];
+                        if ( id = "100794" ) {
+                            console.log('--', id, project_name);
+                        }
                         var item = {
-                            id: /(10\d\d\d\d)/.exec(project_name)[1],
+                            id: id,
                             total: -1,
                             accepted_total: -1,
                             accepted_percent: -1,
@@ -652,6 +660,9 @@ Ext.define("TSProjectStatus", {
                     var feature = story.get('Feature');
                     if ( feature ) {
                         project_space = feature.Project._refObjectName;
+                        if ( feature.Parent ) {
+                            project_space = feature.Parent.Project._refObjectName;
+                        }
                     }
                 }
             });
@@ -745,7 +756,7 @@ Ext.define("TSProjectStatus", {
                 }},
                 { dataIndex: 'project_space', text: 'Project' },
                 { dataIndex: 'workspace', text: 'Workspace', renderer: function(value, meta, record) {
-                    console.log(record.get('id'), record);
+                    
                     if ( record.get('id') == none_id ) {
                         return "N/A";
                     }
