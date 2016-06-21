@@ -164,9 +164,7 @@ Ext.define("TSProjectStatus", {
                     success: function(results) {
                         var items = Ext.Array.map(results, function(result) {
                             var id = result.get('c_EPMSid') || result.get('c_EPMSID');
-                            if ( id = "100794" ) {
-                                console.log('++', id, result.get('FormattedID'), result.get('Project')._refObjectName, result);
-                            }
+
                             var item = {
                                 id: id ,
                                 total: -1,
@@ -226,9 +224,7 @@ Ext.define("TSProjectStatus", {
                     var project_name = project.get('Name');
                     if ( /10\d\d\d\d/.test(project_name) ) {
                         var id = /(10\d\d\d\d)/.exec(project_name)[1];
-                        if ( id = "100794" ) {
-                            console.log('--', id, project_name);
-                        }
+
                         var item = {
                             id: id,
                             total: -1,
@@ -482,7 +478,6 @@ Ext.define("TSProjectStatus", {
                     Workspace: iteration.get('Workspace')
                 });
 //              
-                me.logger.log("Iteration without items", iteration.get("Project"), iteration.get('Name'));
                 
                 placeholder_stories.push(fake_story);
             }
@@ -709,6 +704,7 @@ Ext.define("TSProjectStatus", {
         
         var store = Ext.create('Rally.data.custom.Store',{ 
             data: rows,
+            remoteSort: false,
             pageSize: 5000
         });
         this.down('#display_box').removeAll();
@@ -768,6 +764,9 @@ Ext.define("TSProjectStatus", {
                 scope: this,
                 itemclick: function(grid, record, item, index, evt) {
                     this._displayPopupForStories("Items for Project " + record.get('id'), record.get('stories'));
+                },
+                sortchange: function(grid, column, direction, eopts) {
+                    console.log('Sort!', direction, eopts, column);
                 }
             }
         });
