@@ -1,7 +1,0 @@
-{
-    "name": "Project Status",
-    "className": "TSProjectStatus",
-    "server": "https://us1.rallydev.com",
-    "sdk": "2.1",
-    "apiKey": "_PUT_APIKEY_HERE_"
-}
